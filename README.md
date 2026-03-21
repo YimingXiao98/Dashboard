@@ -4,6 +4,7 @@ This workspace now separates the class deliverables from the runnable prototype.
 
 ## Structure
 
+- `paper/`: original LaTeX paper source, bibliography, and figure assets
 - `docs/proposal/`: proposal report source and PDFs
 - `docs/slides/`: slide outline used for the proposal presentation
 - `docs/assets/proposal-figures/`: static figures referenced by the proposal
