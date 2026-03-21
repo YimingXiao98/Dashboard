@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Counterfactual Student Dashboard Prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-glow page-glow-left"></div>
+    <div class="page-glow page-glow-right"></div>
+    <main class="app-shell">
+      <header class="hero panel reveal">
+        <div>
+          <p class="eyebrow">Data Visualization Prototype</p>
+          <h1>Counterfactual Student Intervention Studio</h1>
+          <p class="hero-copy">
+            A prototype checkpoint for the advising dashboard proposed in the report and slides:
+            choose an at-risk student, simulate an intervention, and see the predicted score
+            distribution shift in real time.
+          </p>
+        </div>
+        <div class="hero-metrics" id="heroMetrics"></div>
+      </header>
+
+      <section class="dashboard-grid">
+        <aside class="panel reveal" id="studentPanel">
+          <div class="panel-head">
+            <p class="eyebrow">1. Select Student</p>
+            <h2>Focus Students</h2>
+          </div>
+          <div id="studentList" class="student-list"></div>
+        </aside>
+
+        <section class="panel panel-main reveal">
+          <div class="panel-head">
+            <p class="eyebrow">2. Compare Baseline vs Scenario</p>
+            <h2>Predicted Score Distribution</h2>
+          </div>
+          <div id="scoreSummary" class="score-summary"></div>
+          <svg id="predictionChart" viewBox="0 0 860 380" role="img" aria-label="Prediction chart"></svg>
+        </section>
+
+        <aside class="panel reveal">
+          <div class="panel-head">
+            <p class="eyebrow">3. Decision Support</p>
+            <h2>Best Next Levers</h2>
+          </div>
+          <div id="recommendations" class="recommendations"></div>
+          <div class="subsection">
+            <h3>Model Signals</h3>
+            <div id="coefficientList" class="coefficient-list"></div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="controls-grid">
+        <section class="panel reveal">
+          <div class="panel-head">
+            <p class="eyebrow">4. Intervention Controls</p>
+            <h2>Editable Variables</h2>
+          </div>
+          <div id="presetBar" class="preset-bar"></div>
+          <div id="controlsGrid" class="controls-grid-inner"></div>
+        </section>
+
+        <section class="panel reveal">
+          <div class="panel-head">
+            <p class="eyebrow">5. Student Context</p>
+            <h2>Immutable And Structural Factors</h2>
+          </div>
+          <div id="contextGrid" class="context-grid"></div>
+        </section>
+      </section>
+
+      <section class="insight-grid">
+        <section class="panel reveal">
+          <div class="panel-head">
+            <p class="eyebrow">6. Cohort Overview</p>
+            <h2>Attendance vs Exam Score</h2>
+          </div>
+          <svg id="scatterChart" viewBox="0 0 560 300" role="img" aria-label="Cohort scatterplot"></svg>
+        </section>
+
+        <section class="panel reveal">
+          <div class="panel-head">
+            <p class="eyebrow">7. Feature Context</p>
+            <h2>Top Correlations With Exam Score</h2>
+          </div>
+          <svg id="correlationChart" viewBox="0 0 560 300" role="img" aria-label="Correlation chart"></svg>
+        </section>
+      </section>
+    </main>
+
+    <script src="./data/prototype-data.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
