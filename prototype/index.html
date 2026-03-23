@@ -43,31 +43,33 @@
               <svg id="predictionChart" viewBox="0 0 860 380" role="img" aria-label="Prediction chart"></svg>
             </section>
 
-            <aside class="panel controls-panel reveal">
-              <div class="panel-head">
-                <p class="eyebrow">3. Intervention Controls</p>
-                <h2>Editable Variables</h2>
-              </div>
-              <div id="presetBar" class="preset-bar"></div>
-              <div class="controls-scroll">
-                <div id="controlsGrid" class="controls-grid-inner"></div>
-              </div>
+            <aside class="sidebar-stack">
+              <section class="panel controls-panel reveal">
+                <div class="panel-head">
+                  <p class="eyebrow">3. Intervention Controls</p>
+                  <h2>Editable Variables</h2>
+                </div>
+                <div id="presetBar" class="preset-bar"></div>
+                <div class="controls-scroll">
+                  <div id="controlsGrid" class="controls-grid-inner"></div>
+                </div>
+              </section>
+
+              <section class="panel decision-panel reveal">
+                <div class="panel-head">
+                  <p class="eyebrow">4. Decision Support</p>
+                  <h2>Best Next Levers</h2>
+                </div>
+                <div id="recommendations" class="recommendations"></div>
+                <div class="subsection">
+                  <h3>Model Signals</h3>
+                  <div id="coefficientList" class="coefficient-list"></div>
+                </div>
+              </section>
             </aside>
           </section>
 
-          <section class="support-grid">
-            <aside class="panel reveal">
-              <div class="panel-head">
-                <p class="eyebrow">4. Decision Support</p>
-                <h2>Best Next Levers</h2>
-              </div>
-              <div id="recommendations" class="recommendations"></div>
-              <div class="subsection">
-                <h3>Model Signals</h3>
-                <div id="coefficientList" class="coefficient-list"></div>
-              </div>
-            </aside>
-
+          <section class="context-row">
             <section class="panel reveal">
               <div class="panel-head">
                 <p class="eyebrow">5. Student Context</p>
