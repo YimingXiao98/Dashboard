@@ -14,7 +14,7 @@ This workspace now separates the class deliverables from the runnable prototype.
 
 ## Prototype
 
-Open `prototype/index.html` in a browser. The page is self-contained and reads its data from `prototype/data/prototype-data.js`, so it does not need a backend server.
+Open `prototype/index.html` in a browser. The page reads its data from `prototype/data/prototype-data.js` and renders the charts with D3.js in the browser, so it does not need a backend server. It currently loads D3.js from a CDN, so the browser should have internet access when opening the page.
 
 ## How To Interact With The Webpage
 
@@ -54,5 +54,6 @@ python3 scripts/generate_proposal_figures.py
 ## Notes
 
 - The model is a transparent linear regression fit over encoded features from the CSV.
+- The interactive charts in the prototype are rendered with D3.js.
 - Uncertainty curves are generated from bootstrap model samples so the prototype still reflects the proposal's "distribution shift" idea.
 - The prototype focuses on at-risk and borderline students to make the checkpoint demo concrete.

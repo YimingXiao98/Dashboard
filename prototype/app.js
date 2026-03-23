@@ -88,29 +88,6 @@ function buildDensity(samples) {
   return points;
 }
 
-function buildPath(points, scales, baselineY) {
-  return points
-    .map((point, index) => {
-      const x = scales.x(point.x);
-      const y = scales.y(point.y);
-      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
-    })
-    .join(" ");
-}
-
-function buildAreaPath(points, scales, baselineY) {
-  const line = buildPath(points, scales, baselineY);
-  const startX = scales.x(points[0].x);
-  const endX = scales.x(points[points.length - 1].x);
-  return `${line} L ${endX} ${baselineY} L ${startX} ${baselineY} Z`;
-}
-
-function scaleLinear(domainMin, domainMax, rangeMin, rangeMax) {
-  const domainSpan = domainMax - domainMin;
-  const rangeSpan = rangeMax - rangeMin;
-  return (value) => rangeMin + ((value - domainMin) / domainSpan) * rangeSpan;
-}
-
 function getScoreDelta(student, scenarioValues) {
   const baselineScore = predictWithModel(student.values, data.model);
   const scenarioScore = predictWithModel(scenarioValues, data.model);
@@ -234,68 +211,156 @@ function renderPredictionChart(student, baselineSummary, scenarioSummary) {
     ...baselinePoints.map((point) => point.y),
     ...scenarioPoints.map((point) => point.y)
   );
-  const svg = document.getElementById("predictionChart");
   const width = 860;
   const height = 380;
   const margin = { top: 20, right: 20, bottom: 42, left: 56 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
-  const x = scaleLinear(45, 100, margin.left, margin.left + plotWidth);
-  const y = scaleLinear(0, maxY * 1.15, margin.top + plotHeight, margin.top);
-
+  const x = d3.scaleLinear().domain([45, 100]).range([margin.left, margin.left + plotWidth]);
+  const y = d3.scaleLinear().domain([0, maxY * 1.15]).range([margin.top + plotHeight, margin.top]);
   const xTicks = [50, 60, 70, 80, 90, 100];
   const yTicks = [0, maxY * 0.5, maxY];
-
   const baselineY = margin.top + plotHeight;
-  const baselineArea = buildAreaPath(baselinePoints, { x, y }, baselineY);
-  const baselineLine = buildPath(baselinePoints, { x, y }, baselineY);
-  const scenarioArea = buildAreaPath(scenarioPoints, { x, y }, baselineY);
-  const scenarioLine = buildPath(scenarioPoints, { x, y }, baselineY);
+  const svg = d3.select("#predictionChart");
+  svg.selectAll("*").remove();
 
-  svg.innerHTML = `
-    <rect x="${x(45)}" y="${margin.top}" width="${x(60) - x(45)}" height="${plotHeight}" fill="rgba(185, 28, 28, 0.09)"></rect>
-    ${xTicks
-      .map(
-        (tick) => `
-          <line class="grid-line" x1="${x(tick)}" y1="${margin.top}" x2="${x(tick)}" y2="${baselineY}"></line>
-          <text class="axis-label" x="${x(tick)}" y="${height - 14}" text-anchor="middle">${tick}</text>
-        `
-      )
-      .join("")}
-    ${yTicks
-      .map(
-        (tick) => `
-          <line class="grid-line" x1="${margin.left}" y1="${y(tick)}" x2="${margin.left + plotWidth}" y2="${y(tick)}"></line>
-        `
-      )
-      .join("")}
-    <line class="axis-line" x1="${margin.left}" y1="${baselineY}" x2="${margin.left + plotWidth}" y2="${baselineY}"></line>
-    <line class="axis-line" x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${baselineY}"></line>
-    <path class="baseline-fill" d="${baselineArea}"></path>
-    <path class="scenario-fill" d="${scenarioArea}"></path>
-    <path class="baseline-line" d="${baselineLine}"></path>
-    <path class="scenario-line" d="${scenarioLine}"></path>
-    <line x1="${x(baselineSummary.mean)}" y1="${margin.top}" x2="${x(
-      baselineSummary.mean
-    )}" y2="${baselineY}" stroke="#d97706" stroke-dasharray="6 6"></line>
-    <line x1="${x(scenarioSummary.mean)}" y1="${margin.top}" x2="${x(
-      scenarioSummary.mean
-    )}" y2="${baselineY}" stroke="#0f766e" stroke-dasharray="6 6"></line>
-    <line x1="${x(student.actualScore)}" y1="${margin.top}" x2="${x(
-      student.actualScore
-    )}" y2="${baselineY}" stroke="#123247" stroke-width="2"></line>
-    <text class="chart-title" x="${margin.left}" y="12">Red zone: predicted failing range below 60</text>
-    <text class="chart-label" x="${x(60) - 8}" y="${margin.top + 18}" text-anchor="end">Fail threshold</text>
-    <text class="chart-label" x="${x(baselineSummary.mean)}" y="${margin.top + 32}" text-anchor="middle">Baseline ${formatNumber(
-      baselineSummary.mean
-    )}</text>
-    <text class="chart-label" x="${x(scenarioSummary.mean)}" y="${margin.top + 48}" text-anchor="middle">Scenario ${formatNumber(
-      scenarioSummary.mean
-    )}</text>
-    <text class="chart-label" x="${x(student.actualScore)}" y="${margin.top + 64}" text-anchor="middle">Actual ${student.actualScore}</text>
-    <text class="axis-label" x="${margin.left + plotWidth / 2}" y="${height - 2}" text-anchor="middle">Predicted exam score</text>
-    <text class="axis-label" transform="translate(16 ${margin.top + plotHeight / 2}) rotate(-90)" text-anchor="middle">Density from bootstrap predictions</text>
-  `;
+  const line = d3
+    .line()
+    .x((point) => x(point.x))
+    .y((point) => y(point.y));
+
+  const area = d3
+    .area()
+    .x((point) => x(point.x))
+    .y0(baselineY)
+    .y1((point) => y(point.y));
+
+  svg
+    .append("rect")
+    .attr("x", x(45))
+    .attr("y", margin.top)
+    .attr("width", x(60) - x(45))
+    .attr("height", plotHeight)
+    .attr("fill", "rgba(185, 28, 28, 0.09)");
+
+  svg
+    .append("g")
+    .selectAll("line")
+    .data(xTicks)
+    .join("line")
+    .attr("class", "grid-line")
+    .attr("x1", (tick) => x(tick))
+    .attr("x2", (tick) => x(tick))
+    .attr("y1", margin.top)
+    .attr("y2", baselineY);
+
+  svg
+    .append("g")
+    .selectAll("line")
+    .data(yTicks)
+    .join("line")
+    .attr("class", "grid-line")
+    .attr("x1", margin.left)
+    .attr("x2", margin.left + plotWidth)
+    .attr("y1", (tick) => y(tick))
+    .attr("y2", (tick) => y(tick));
+
+  svg
+    .append("line")
+    .attr("class", "axis-line")
+    .attr("x1", margin.left)
+    .attr("x2", margin.left + plotWidth)
+    .attr("y1", baselineY)
+    .attr("y2", baselineY);
+
+  svg
+    .append("line")
+    .attr("class", "axis-line")
+    .attr("x1", margin.left)
+    .attr("x2", margin.left)
+    .attr("y1", margin.top)
+    .attr("y2", baselineY);
+
+  svg.append("path").datum(baselinePoints).attr("class", "baseline-fill").attr("d", area);
+  svg.append("path").datum(scenarioPoints).attr("class", "scenario-fill").attr("d", area);
+  svg.append("path").datum(baselinePoints).attr("class", "baseline-line").attr("d", line);
+  svg.append("path").datum(scenarioPoints).attr("class", "scenario-line").attr("d", line);
+
+  [
+    { xValue: baselineSummary.mean, stroke: "#d97706", dash: "6 6" },
+    { xValue: scenarioSummary.mean, stroke: "#0f766e", dash: "6 6" },
+    { xValue: student.actualScore, stroke: "#123247", width: 2 },
+  ].forEach((marker) => {
+    const selection = svg
+      .append("line")
+      .attr("x1", x(marker.xValue))
+      .attr("x2", x(marker.xValue))
+      .attr("y1", margin.top)
+      .attr("y2", baselineY)
+      .attr("stroke", marker.stroke);
+
+    if (marker.dash) {
+      selection.attr("stroke-dasharray", marker.dash);
+    }
+    if (marker.width) {
+      selection.attr("stroke-width", marker.width);
+    }
+  });
+
+  svg
+    .append("g")
+    .selectAll("text")
+    .data(xTicks)
+    .join("text")
+    .attr("class", "axis-label")
+    .attr("x", (tick) => x(tick))
+    .attr("y", height - 14)
+    .attr("text-anchor", "middle")
+    .text((tick) => tick);
+
+  svg
+    .append("text")
+    .attr("class", "chart-title")
+    .attr("x", margin.left)
+    .attr("y", 12)
+    .text("Red zone: predicted failing range below 60");
+
+  svg
+    .append("text")
+    .attr("class", "chart-label")
+    .attr("x", x(60) - 8)
+    .attr("y", margin.top + 18)
+    .attr("text-anchor", "end")
+    .text("Fail threshold");
+
+  [
+    { xValue: baselineSummary.mean, yValue: margin.top + 32, text: `Baseline ${formatNumber(baselineSummary.mean)}` },
+    { xValue: scenarioSummary.mean, yValue: margin.top + 48, text: `Scenario ${formatNumber(scenarioSummary.mean)}` },
+    { xValue: student.actualScore, yValue: margin.top + 64, text: `Actual ${student.actualScore}` },
+  ].forEach((label) => {
+    svg
+      .append("text")
+      .attr("class", "chart-label")
+      .attr("x", x(label.xValue))
+      .attr("y", label.yValue)
+      .attr("text-anchor", "middle")
+      .text(label.text);
+  });
+
+  svg
+    .append("text")
+    .attr("class", "axis-label")
+    .attr("x", margin.left + plotWidth / 2)
+    .attr("y", height - 2)
+    .attr("text-anchor", "middle")
+    .text("Predicted exam score");
+
+  svg
+    .append("text")
+    .attr("class", "axis-label")
+    .attr("transform", `translate(16 ${margin.top + plotHeight / 2}) rotate(-90)`)
+    .attr("text-anchor", "middle")
+    .text("Density from bootstrap predictions");
 }
 
 function renderRecommendations(student, scenarioValues) {
@@ -448,84 +513,201 @@ function renderContext(student) {
 }
 
 function renderScatterChart(student) {
-  const svg = document.getElementById("scatterChart");
   const width = 560;
   const height = 300;
   const margin = { top: 16, right: 16, bottom: 36, left: 46 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
-  const x = scaleLinear(60, 100, margin.left, margin.left + plotWidth);
-  const y = scaleLinear(55, 101, margin.top + plotHeight, margin.top);
+  const x = d3.scaleLinear().domain([60, 100]).range([margin.left, margin.left + plotWidth]);
+  const y = d3.scaleLinear().domain([55, 101]).range([margin.top + plotHeight, margin.top]);
   const colors = {
     Low: "#b91c1c",
     Medium: "#d97706",
     High: "#0f766e",
   };
+  const svg = d3.select("#scatterChart");
+  svg.selectAll("*").remove();
 
-  svg.innerHTML = `
-    <line class="axis-line" x1="${margin.left}" y1="${margin.top + plotHeight}" x2="${margin.left + plotWidth}" y2="${margin.top + plotHeight}"></line>
-    <line class="axis-line" x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + plotHeight}"></line>
-    ${[60, 70, 80, 90, 100]
-      .map(
-        (tick) => `
-          <line class="grid-line" x1="${x(tick)}" y1="${margin.top}" x2="${x(tick)}" y2="${margin.top + plotHeight}"></line>
-          <text class="axis-label" x="${x(tick)}" y="${height - 12}" text-anchor="middle">${tick}</text>
-        `
-      )
-      .join("")}
-    ${[55, 65, 75, 85, 95]
-      .map(
-        (tick) => `
-          <line class="grid-line" x1="${margin.left}" y1="${y(tick)}" x2="${margin.left + plotWidth}" y2="${y(tick)}"></line>
-          <text class="axis-label" x="${margin.left - 8}" y="${y(tick) + 4}" text-anchor="end">${tick}</text>
-        `
-      )
-      .join("")}
-    ${data.cohortScatter
-      .map(
-        (point) => `
-          <circle cx="${x(point.attendance)}" cy="${y(point.score)}" r="4" fill="${colors[point.parentalInvolvement]}" opacity="0.38"></circle>
-        `
-      )
-      .join("")}
-    <line x1="${x(student.values.Attendance)}" y1="${margin.top}" x2="${x(student.values.Attendance)}" y2="${margin.top + plotHeight}" stroke="#123247" stroke-dasharray="5 5"></line>
-    <line x1="${margin.left}" y1="${y(student.actualScore)}" x2="${margin.left + plotWidth}" y2="${y(student.actualScore)}" stroke="#123247" stroke-dasharray="5 5"></line>
-    <circle cx="${x(student.values.Attendance)}" cy="${y(student.actualScore)}" r="7" fill="#123247"></circle>
-    <text class="axis-label" x="${margin.left + plotWidth / 2}" y="${height - 2}" text-anchor="middle">Attendance</text>
-    <text class="axis-label" transform="translate(16 ${margin.top + plotHeight / 2}) rotate(-90)" text-anchor="middle">Exam score</text>
-  `;
+  svg
+    .append("line")
+    .attr("class", "axis-line")
+    .attr("x1", margin.left)
+    .attr("x2", margin.left + plotWidth)
+    .attr("y1", margin.top + plotHeight)
+    .attr("y2", margin.top + plotHeight);
+
+  svg
+    .append("line")
+    .attr("class", "axis-line")
+    .attr("x1", margin.left)
+    .attr("x2", margin.left)
+    .attr("y1", margin.top)
+    .attr("y2", margin.top + plotHeight);
+
+  const xTicks = [60, 70, 80, 90, 100];
+  const yTicks = [55, 65, 75, 85, 95];
+
+  svg
+    .append("g")
+    .selectAll("line")
+    .data(xTicks)
+    .join("line")
+    .attr("class", "grid-line")
+    .attr("x1", (tick) => x(tick))
+    .attr("x2", (tick) => x(tick))
+    .attr("y1", margin.top)
+    .attr("y2", margin.top + plotHeight);
+
+  svg
+    .append("g")
+    .selectAll("text")
+    .data(xTicks)
+    .join("text")
+    .attr("class", "axis-label")
+    .attr("x", (tick) => x(tick))
+    .attr("y", height - 12)
+    .attr("text-anchor", "middle")
+    .text((tick) => tick);
+
+  svg
+    .append("g")
+    .selectAll("line")
+    .data(yTicks)
+    .join("line")
+    .attr("class", "grid-line")
+    .attr("x1", margin.left)
+    .attr("x2", margin.left + plotWidth)
+    .attr("y1", (tick) => y(tick))
+    .attr("y2", (tick) => y(tick));
+
+  svg
+    .append("g")
+    .selectAll("text")
+    .data(yTicks)
+    .join("text")
+    .attr("class", "axis-label")
+    .attr("x", margin.left - 8)
+    .attr("y", (tick) => y(tick) + 4)
+    .attr("text-anchor", "end")
+    .text((tick) => tick);
+
+  svg
+    .append("g")
+    .selectAll("circle")
+    .data(data.cohortScatter)
+    .join("circle")
+    .attr("cx", (point) => x(point.attendance))
+    .attr("cy", (point) => y(point.score))
+    .attr("r", 4)
+    .attr("fill", (point) => colors[point.parentalInvolvement])
+    .attr("opacity", 0.38);
+
+  svg
+    .append("line")
+    .attr("x1", x(student.values.Attendance))
+    .attr("x2", x(student.values.Attendance))
+    .attr("y1", margin.top)
+    .attr("y2", margin.top + plotHeight)
+    .attr("stroke", "#123247")
+    .attr("stroke-dasharray", "5 5");
+
+  svg
+    .append("line")
+    .attr("x1", margin.left)
+    .attr("x2", margin.left + plotWidth)
+    .attr("y1", y(student.actualScore))
+    .attr("y2", y(student.actualScore))
+    .attr("stroke", "#123247")
+    .attr("stroke-dasharray", "5 5");
+
+  svg
+    .append("circle")
+    .attr("cx", x(student.values.Attendance))
+    .attr("cy", y(student.actualScore))
+    .attr("r", 7)
+    .attr("fill", "#123247");
+
+  svg
+    .append("text")
+    .attr("class", "axis-label")
+    .attr("x", margin.left + plotWidth / 2)
+    .attr("y", height - 2)
+    .attr("text-anchor", "middle")
+    .text("Attendance");
+
+  svg
+    .append("text")
+    .attr("class", "axis-label")
+    .attr("transform", `translate(16 ${margin.top + plotHeight / 2}) rotate(-90)`)
+    .attr("text-anchor", "middle")
+    .text("Exam score");
 }
 
 function renderCorrelationChart() {
-  const svg = document.getElementById("correlationChart");
   const width = 560;
   const height = 300;
-  const margin = { top: 18, right: 16, bottom: 28, left: 180 };
+  const margin = { top: 18, right: 52, bottom: 28, left: 180 };
   const plotWidth = width - margin.left - margin.right;
   const barHeight = 18;
   const gap = 8;
   const maxAbs = Math.max(...data.topCorrelations.map((item) => Math.abs(item.value)));
-  const x = scaleLinear(-maxAbs, maxAbs, margin.left, margin.left + plotWidth);
+  const paddedMaxAbs = maxAbs * 1.16;
+  const x = d3
+    .scaleLinear()
+    .domain([-paddedMaxAbs, paddedMaxAbs])
+    .range([margin.left, margin.left + plotWidth]);
 
-  svg.innerHTML = `
-    <line class="axis-line" x1="${x(0)}" y1="${margin.top - 8}" x2="${x(0)}" y2="${height - margin.bottom}"></line>
-    ${data.topCorrelations
-      .map((item, index) => {
-        const y = margin.top + index * (barHeight + gap);
-        const start = x(Math.min(0, item.value));
-        const end = x(Math.max(0, item.value));
-        const widthValue = Math.abs(end - start);
-        const fill = item.value >= 0 ? "rgba(15, 118, 110, 0.78)" : "rgba(185, 28, 28, 0.72)";
-        return `
-          <text class="axis-label" x="${margin.left - 10}" y="${y + 13}" text-anchor="end">${item.label}</text>
-          <rect x="${start}" y="${y}" width="${widthValue}" height="${barHeight}" rx="9" fill="${fill}"></rect>
-          <text class="axis-label" x="${end + (item.value >= 0 ? 8 : -8)}" y="${y + 13}" text-anchor="${
-            item.value >= 0 ? "start" : "end"
-          }">${item.value}</text>
-        `;
-      })
-      .join("")}
-  `;
+  function formatCorrelation(value) {
+    return value.toFixed(3).replace(/\.?0+$/, "");
+  }
+  const svg = d3.select("#correlationChart");
+  svg.selectAll("*").remove();
+
+  svg
+    .append("line")
+    .attr("class", "axis-line")
+    .attr("x1", x(0))
+    .attr("x2", x(0))
+    .attr("y1", margin.top - 8)
+    .attr("y2", height - margin.bottom);
+
+  const groups = svg
+    .append("g")
+    .selectAll("g")
+    .data(data.topCorrelations)
+    .join("g")
+    .attr("transform", (_, index) => `translate(0, ${margin.top + index * (barHeight + gap)})`);
+
+  groups
+    .append("text")
+    .attr("class", "axis-label")
+    .attr("x", margin.left - 10)
+    .attr("y", 13)
+    .attr("text-anchor", "end")
+    .text((item) => item.label);
+
+  groups
+    .append("rect")
+    .attr("x", (item) => x(Math.min(0, item.value)))
+    .attr("y", 0)
+    .attr("width", (item) => Math.abs(x(Math.max(0, item.value)) - x(Math.min(0, item.value))))
+    .attr("height", barHeight)
+    .attr("rx", 9)
+    .attr("fill", (item) =>
+      item.value >= 0 ? "rgba(15, 118, 110, 0.78)" : "rgba(185, 28, 28, 0.72)"
+    );
+
+  groups
+    .append("text")
+    .attr("class", "axis-label")
+    .attr("x", (item) => {
+      const start = x(Math.min(0, item.value));
+      const end = x(Math.max(0, item.value));
+      return item.value >= 0 ? end + 12 : start - 12;
+    })
+    .attr("y", 13)
+    .attr("text-anchor", (item) => (item.value >= 0 ? "start" : "end"))
+    .text((item) => formatCorrelation(item.value));
 }
 
 function renderAll(rebuildLists = true) {
