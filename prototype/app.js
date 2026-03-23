@@ -117,7 +117,7 @@ function buildRecommendations(student, scenarioValues) {
     })
     .filter(Boolean)
     .sort((left, right) => right.delta - left.delta)
-    .slice(0, 5);
+    .slice(0, 4);
 
   return items;
 }
@@ -212,8 +212,8 @@ function renderPredictionChart(student, baselineSummary, scenarioSummary) {
     ...scenarioPoints.map((point) => point.y)
   );
   const width = 860;
-  const height = 380;
-  const margin = { top: 20, right: 20, bottom: 42, left: 56 };
+  const height = 430;
+  const margin = { top: 22, right: 20, bottom: 46, left: 58 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
   const x = d3.scaleLinear().domain([45, 100]).range([margin.left, margin.left + plotWidth]);
@@ -314,7 +314,7 @@ function renderPredictionChart(student, baselineSummary, scenarioSummary) {
     .join("text")
     .attr("class", "axis-label")
     .attr("x", (tick) => x(tick))
-    .attr("y", height - 14)
+    .attr("y", height - 16)
     .attr("text-anchor", "middle")
     .text((tick) => tick);
 
@@ -325,33 +325,57 @@ function renderPredictionChart(student, baselineSummary, scenarioSummary) {
     .attr("y", 12)
     .text("Red zone: predicted failing range below 60");
 
-  svg
-    .append("text")
-    .attr("class", "chart-label")
-    .attr("x", x(60) - 8)
-    .attr("y", margin.top + 18)
-    .attr("text-anchor", "end")
-    .text("Fail threshold");
+  const legendItems = [
+    { color: "#b91c1c", dash: "6 3", text: "Fail threshold (60)", strokeWidth: 1.5 },
+    { color: "#d97706", dash: "6 6", text: `Baseline ${formatNumber(baselineSummary.mean)}`, strokeWidth: 2 },
+    { color: "#0f766e", dash: "6 6", text: `Scenario ${formatNumber(scenarioSummary.mean)}`, strokeWidth: 2 },
+    { color: "#123247", dash: null, text: `Actual ${student.actualScore}`, strokeWidth: 2 },
+  ];
 
-  [
-    { xValue: baselineSummary.mean, yValue: margin.top + 32, text: `Baseline ${formatNumber(baselineSummary.mean)}` },
-    { xValue: scenarioSummary.mean, yValue: margin.top + 48, text: `Scenario ${formatNumber(scenarioSummary.mean)}` },
-    { xValue: student.actualScore, yValue: margin.top + 64, text: `Actual ${student.actualScore}` },
-  ].forEach((label) => {
+  const legendX = margin.left + plotWidth - 8;
+  const legendLineX1 = legendX - 148;
+  const legendLineX2 = legendX - 122;
+  const legendTextX = legendX - 116;
+  const legendStartY = margin.top + 20;
+  const legendGap = 22;
+
+  svg
+    .append("rect")
+    .attr("x", legendLineX1 - 10)
+    .attr("y", legendStartY - 14)
+    .attr("width", legendX - legendLineX1 + 18)
+    .attr("height", legendItems.length * legendGap + 4)
+    .attr("rx", 8)
+    .attr("fill", "rgba(255,251,245,0.82)")
+    .attr("stroke", "rgba(31,41,51,0.10)")
+    .attr("stroke-width", 1);
+
+  legendItems.forEach((item, i) => {
+    const ly = legendStartY + i * legendGap;
+    const line = svg
+      .append("line")
+      .attr("x1", legendLineX1)
+      .attr("x2", legendLineX2)
+      .attr("y1", ly)
+      .attr("y2", ly)
+      .attr("stroke", item.color)
+      .attr("stroke-width", item.strokeWidth);
+    if (item.dash) line.attr("stroke-dasharray", item.dash);
+
     svg
       .append("text")
       .attr("class", "chart-label")
-      .attr("x", x(label.xValue))
-      .attr("y", label.yValue)
-      .attr("text-anchor", "middle")
-      .text(label.text);
+      .attr("x", legendTextX)
+      .attr("y", ly + 5)
+      .attr("text-anchor", "start")
+      .text(item.text);
   });
 
   svg
     .append("text")
     .attr("class", "axis-label")
     .attr("x", margin.left + plotWidth / 2)
-    .attr("y", height - 2)
+    .attr("y", height - 4)
     .attr("text-anchor", "middle")
     .text("Predicted exam score");
 
@@ -376,13 +400,26 @@ function renderRecommendations(student, scenarioValues) {
             </span>
           </div>
           <p>Next reasonable move: set <strong>${item.label}</strong> to <strong>${item.nextValue}</strong>.</p>
+          <div class="recommendation-actions">
+            <button class="recommendation-apply" data-recommendation-index="${index}">
+              Apply This Lever
+            </button>
+          </div>
         </div>
       `
     )
     .join("");
 
+  document.querySelectorAll("[data-recommendation-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const recommendation = recommendations[Number(button.dataset.recommendationIndex)];
+      state.scenarioValues[recommendation.key] = recommendation.nextValue;
+      renderAll(false);
+    });
+  });
+
   document.getElementById("coefficientList").innerHTML = data.model.coefficientSummary
-    .slice(0, 6)
+    .slice(0, 5)
     .map(
       (item) => `
         <div class="coefficient-card">

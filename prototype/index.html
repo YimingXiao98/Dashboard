@@ -33,69 +33,69 @@
         </aside>
 
         <section class="studio-main">
-          <section class="workbench-grid">
+          <section class="analysis-grid">
             <section class="panel panel-main reveal">
               <div class="panel-head">
                 <p class="eyebrow">2. Compare Baseline vs Scenario</p>
                 <h2>Predicted Score Distribution</h2>
               </div>
               <div id="scoreSummary" class="score-summary"></div>
-              <svg id="predictionChart" viewBox="0 0 860 380" role="img" aria-label="Prediction chart"></svg>
+              <svg id="predictionChart" viewBox="0 0 860 430" role="img" aria-label="Prediction chart"></svg>
             </section>
 
-            <aside class="sidebar-stack">
-              <section class="panel controls-panel reveal">
-                <div class="panel-head">
-                  <p class="eyebrow">3. Intervention Controls</p>
-                  <h2>Editable Variables</h2>
-                </div>
-                <div id="presetBar" class="preset-bar"></div>
-                <div class="controls-scroll">
-                  <div id="controlsGrid" class="controls-grid-inner"></div>
-                </div>
-              </section>
-
+            <aside class="insight-stack">
               <section class="panel decision-panel reveal">
                 <div class="panel-head">
-                  <p class="eyebrow">4. Decision Support</p>
+                  <p class="eyebrow">3. Decision Support</p>
                   <h2>Best Next Levers</h2>
                 </div>
-                <div id="recommendations" class="recommendations"></div>
-                <div class="subsection">
-                  <h3>Model Signals</h3>
-                  <div id="coefficientList" class="coefficient-list"></div>
+                <div class="decision-scroll">
+                  <div id="recommendations" class="recommendations"></div>
+                  <div class="subsection">
+                    <h3>Model Signals</h3>
+                    <div id="coefficientList" class="coefficient-list"></div>
+                  </div>
                 </div>
               </section>
             </aside>
           </section>
+        </section>
+      </section>
 
-          <section class="context-row">
-            <section class="panel reveal">
-              <div class="panel-head">
-                <p class="eyebrow">5. Student Context</p>
-                <h2>Immutable And Structural Factors</h2>
-              </div>
-              <div id="contextGrid" class="context-grid"></div>
-            </section>
-          </section>
+      <section class="panel controls-band reveal">
+        <div class="panel-head">
+          <p class="eyebrow">4. Intervention Controls</p>
+          <h2>Editable Variables</h2>
+        </div>
+        <div id="presetBar" class="preset-bar"></div>
+        <div id="controlsGrid" class="controls-grid-inner controls-grid-band"></div>
+      </section>
 
-          <section class="insight-grid">
-            <section class="panel reveal">
-              <div class="panel-head">
-                <p class="eyebrow">6. Cohort Overview</p>
-                <h2>Attendance vs Exam Score</h2>
-              </div>
-              <svg id="scatterChart" viewBox="0 0 560 300" role="img" aria-label="Cohort scatterplot"></svg>
-            </section>
+      <section class="context-row">
+        <section class="panel reveal">
+          <div class="panel-head">
+            <p class="eyebrow">5. Student Context</p>
+            <h2>Immutable And Structural Factors</h2>
+          </div>
+          <div id="contextGrid" class="context-grid"></div>
+        </section>
+      </section>
 
-            <section class="panel reveal">
-              <div class="panel-head">
-                <p class="eyebrow">7. Feature Context</p>
-                <h2>Top Correlations With Exam Score</h2>
-              </div>
-              <svg id="correlationChart" viewBox="0 0 560 300" role="img" aria-label="Correlation chart"></svg>
-            </section>
-          </section>
+      <section class="insight-grid">
+        <section class="panel reveal">
+          <div class="panel-head">
+            <p class="eyebrow">6. Cohort Overview</p>
+            <h2>Attendance vs Exam Score</h2>
+          </div>
+          <svg id="scatterChart" viewBox="0 0 560 300" role="img" aria-label="Cohort scatterplot"></svg>
+        </section>
+
+        <section class="panel reveal">
+          <div class="panel-head">
+            <p class="eyebrow">7. Feature Context</p>
+            <h2>Top Correlations With Exam Score</h2>
+          </div>
+          <svg id="correlationChart" viewBox="0 0 560 300" role="img" aria-label="Correlation chart"></svg>
         </section>
       </section>
     </main>

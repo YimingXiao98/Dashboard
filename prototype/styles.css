@@ -73,8 +73,8 @@ body {
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.95fr);
-  gap: 28px;
+  grid-template-columns: minmax(0, 1.35fr) 320px;
+  gap: 32px;
   padding: 28px;
   overflow: hidden;
   position: relative;
@@ -107,9 +107,9 @@ h3 {
 }
 
 h1 {
-  font-size: clamp(2.5rem, 4vw, 4.6rem);
-  line-height: 0.9;
-  max-width: 10ch;
+  font-size: clamp(2.4rem, 4vw, 4.4rem);
+  line-height: 0.92;
+  max-width: 9ch;
   color: var(--navy);
 }
 
@@ -133,9 +133,9 @@ h3 {
 
 .hero-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
-  align-content: end;
+  align-content: start;
 }
 
 .metric-card {
@@ -160,8 +160,8 @@ h3 {
 }
 
 .studio-layout,
-.workbench-grid,
-.sidebar-stack,
+.analysis-grid,
+.insight-stack,
 .context-row,
 .insight-grid {
   display: grid;
@@ -170,8 +170,8 @@ h3 {
 }
 
 .studio-layout {
-  grid-template-columns: 272px minmax(0, 1fr);
-  align-items: start;
+  grid-template-columns: 260px minmax(0, 1fr);
+  align-items: stretch;
 }
 
 .studio-main {
@@ -179,14 +179,31 @@ h3 {
   gap: 22px;
 }
 
-.workbench-grid {
-  grid-template-columns: minmax(0, 1.9fr) 360px;
-  align-items: start;
+.studio-main > .analysis-grid {
+  margin-top: 0;
 }
 
-.sidebar-stack,
-.context-row {
+.analysis-grid {
+  grid-template-columns: minmax(0, 1.9fr) 320px;
+  align-items: stretch;
+}
+
+.insight-stack {
   margin-top: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.insight-stack > .decision-panel {
+  flex: 1;
+}
+
+.context-row {
+  margin-top: 22px;
+}
+
+.controls-band {
+  margin-top: 22px;
 }
 
 .insight-grid {
@@ -210,8 +227,8 @@ h3 {
 
 .rail-panel,
 .panel-main,
-.controls-panel,
 .decision-panel,
+.controls-band,
 .context-row > .panel,
 .insight-grid > .panel {
   padding: 24px;
@@ -222,7 +239,8 @@ h3 {
   top: 24px;
 }
 
-.student-list {
+.student-list,
+.decision-scroll {
   display: grid;
   gap: 10px;
   max-height: calc(100vh - 190px);
@@ -310,7 +328,9 @@ h3 {
 }
 
 .panel-main {
-  padding: 28px;
+  padding: 26px 26px 22px;
+  display: flex;
+  flex-direction: column;
 }
 
 .score-tile {
@@ -333,7 +353,13 @@ h3 {
   font-size: 0.9rem;
 }
 
-#predictionChart,
+#predictionChart {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: block;
+}
+
 #scatterChart,
 #correlationChart {
   width: 100%;
@@ -380,11 +406,34 @@ h3 {
   margin-top: 18px;
 }
 
+.recommendation-actions {
+  margin-top: 12px;
+}
+
+.recommendation-apply {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: var(--teal);
+  color: white;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.recommendation-apply:hover {
+  transform: translateY(-1px);
+  background: #0c635c;
+  box-shadow: 0 12px 24px rgba(15, 118, 110, 0.16);
+}
+
 .preset-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
 }
 
 .preset-button,
@@ -406,24 +455,18 @@ h3 {
   background: rgba(15, 118, 110, 0.14);
 }
 
-.controls-scroll {
-  max-height: 560px;
-  overflow: auto;
-  padding-right: 4px;
-}
-
 .controls-grid-inner,
 .context-grid {
   display: grid;
   gap: 12px;
 }
 
-.controls-grid-inner {
-  grid-template-columns: 1fr;
+.controls-grid-band {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .context-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .control-top {
@@ -437,6 +480,17 @@ h3 {
   color: var(--navy);
   font-size: 1rem;
   font-weight: 700;
+}
+
+.controls-band .control-card,
+.decision-panel .recommendation-card,
+.decision-panel .coefficient-card {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.decision-panel {
+  position: sticky;
+  top: 24px;
 }
 
 .control-card strong,
@@ -467,12 +521,12 @@ select {
 .chart-label,
 .axis-label {
   fill: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .chart-title {
   fill: var(--navy);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -512,28 +566,24 @@ select {
   animation-delay: 90ms;
 }
 
-.workbench-grid > :nth-child(2) {
+.analysis-grid > :nth-child(2) {
   animation-delay: 160ms;
 }
 
-.sidebar-stack > :nth-child(1) {
+.controls-band {
   animation-delay: 280ms;
 }
 
-.sidebar-stack > :nth-child(2) {
+.context-row > :nth-child(1) {
   animation-delay: 340ms;
 }
 
-.context-row > :nth-child(1) {
+.insight-grid > :nth-child(1) {
   animation-delay: 400ms;
 }
 
-.insight-grid > :nth-child(1) {
-  animation-delay: 460ms;
-}
-
 .insight-grid > :nth-child(2) {
-  animation-delay: 520ms;
+  animation-delay: 460ms;
 }
 
 @keyframes rise {
@@ -545,8 +595,8 @@ select {
 
 @media (max-width: 1200px) {
   .studio-layout,
-  .workbench-grid,
-  .sidebar-stack,
+  .analysis-grid,
+  .insight-stack,
   .context-row,
   .insight-grid,
   .hero {
@@ -561,7 +611,16 @@ select {
     position: static;
   }
 
+  .decision-panel {
+    position: static;
+  }
+
   .score-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .controls-grid-band,
+  .context-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -575,23 +634,22 @@ select {
   .hero,
   .rail-panel,
   .panel-main,
-  .controls-panel,
   .decision-panel,
+  .controls-band,
   .context-row > .panel,
   .insight-grid > .panel,
-  .workbench-grid > .panel {
+  .analysis-grid > .panel {
     border-radius: 20px;
   }
 
   .hero-metrics,
-  .controls-grid-inner,
+  .controls-grid-band,
   .context-grid,
   .score-summary {
     grid-template-columns: 1fr;
   }
 
-  .student-list,
-  .controls-scroll {
+  .student-list {
     max-height: none;
   }
 }
