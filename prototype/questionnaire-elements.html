@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Questionnaire Element Gallery</title>
+    <link rel="stylesheet" href="./questionnaire-elements.css" />
+  </head>
+  <body>
+    <main class="gallery-shell">
+      <header class="hero">
+        <p class="eyebrow">Questionnaire Support</p>
+        <h1>Interface Element Illustration Sheet</h1>
+        <p class="hero-copy">
+          This page collects clean, screenshot-friendly illustrations of the main interface
+          elements from the prototype. Each section isolates one element so you can crop it
+          directly into a Slack message, Google Form, or survey document.
+        </p>
+        <div class="chip-row">
+          <span class="chip">Sliders</span>
+          <span class="chip">Dropdowns</span>
+          <span class="chip">Preset Buttons</span>
+          <span class="chip">Summary Card</span>
+          <span class="chip">Before/After Chart</span>
+        </div>
+      </header>
+
+      <section class="element-block">
+        <div class="element-copy">
+          <p class="eyebrow">Element 1</p>
+          <h2>Sliders For Numeric Variables</h2>
+          <p>
+            Use this to illustrate direct adjustment of numeric intervention levers such as
+            attendance, tutoring sessions, hours studied, or sleep hours.
+          </p>
+        </div>
+        <div class="capture-frame">
+          <div class="mock-panel">
+            <div class="mock-header">
+              <div>
+                <p class="tiny-label">Editable Variable</p>
+                <h3>Attendance</h3>
+              </div>
+              <div class="value-pill">78%</div>
+            </div>
+            <p class="support-copy">
+              Adjust a student's predicted outcome by changing an actionable numeric input.
+            </p>
+            <div class="slider-wrap">
+              <span>60</span>
+              <div class="slider-track">
+                <div class="slider-fill" style="width: 45%"></div>
+                <div class="slider-thumb" style="left: 45%"></div>
+              </div>
+              <span>100</span>
+            </div>
+            <div class="annotation-row">
+              <span>Baseline: 72%</span>
+              <span>Simulated increase: +6%</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="element-block reverse">
+        <div class="element-copy">
+          <p class="eyebrow">Element 2</p>
+          <h2>Dropdowns For Categorical Variables</h2>
+          <p>
+            This shows how a user would choose among discrete conditions like motivation level,
+            access to resources, or parental involvement.
+          </p>
+        </div>
+        <div class="capture-frame">
+          <div class="mock-panel">
+            <div class="mock-header">
+              <div>
+                <p class="tiny-label">Categorical Variable</p>
+                <h3>Motivation Level</h3>
+              </div>
+            </div>
+            <p class="support-copy">
+              A dropdown is useful when the intervention variable has a small number of ordered
+              options.
+            </p>
+            <div class="select-card">
+              <span>Medium</span>
+              <span class="caret">▾</span>
+            </div>
+            <div class="dropdown-preview">
+              <div>Low</div>
+              <div class="active-option">Medium</div>
+              <div>High</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="element-block">
+        <div class="element-copy">
+          <p class="eyebrow">Element 3</p>
+          <h2>Preset Intervention Buttons</h2>
+          <p>
+            Presets make the tool faster to use by letting an instructor test common intervention
+            bundles without adjusting every control one by one.
+          </p>
+        </div>
+        <div class="capture-frame">
+          <div class="mock-panel">
+            <div class="mock-header">
+              <div>
+                <p class="tiny-label">Quick Actions</p>
+                <h3>Intervention Presets</h3>
+              </div>
+            </div>
+            <p class="support-copy">
+              These buttons apply typical advising strategies with one click.
+            </p>
+            <div class="preset-grid">
+              <button class="preset-button active">Attendance recovery</button>
+              <button class="preset-button">Tutoring boost</button>
+              <button class="preset-button">Study plan</button>
+              <button class="preset-button subtle">Reset to baseline</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="element-block reverse">
+        <div class="element-copy">
+          <p class="eyebrow">Element 4</p>
+          <h2>Summary Card With Recommended Next Steps</h2>
+          <p>
+            This card condenses the current scenario into a short recommendation so the user does
+            not need to interpret every control or coefficient manually.
+          </p>
+        </div>
+        <div class="capture-frame">
+          <div class="mock-panel">
+            <div class="recommendation-card">
+              <div class="recommendation-top">
+                <div>
+                  <p class="tiny-label">Recommended Next Step</p>
+                  <h3>Increase tutoring to 2 sessions/week</h3>
+                </div>
+                <div class="lift-pill">+3.8 pts</div>
+              </div>
+              <p class="support-copy">
+                This is the strongest next move for the current student profile and produces the
+                largest estimated improvement among one-step changes.
+              </p>
+              <div class="recommendation-tags">
+                <span class="tag">High actionability</span>
+                <span class="tag">Low implementation cost</span>
+                <span class="tag">Moves score above watch zone</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="element-block">
+        <div class="element-copy">
+          <p class="eyebrow">Element 5</p>
+          <h2>A Chart Showing Before/After Prediction Changes</h2>
+          <p>
+            This is the main comparison view. It shows how the predicted score distribution shifts
+            when an intervention is applied.
+          </p>
+        </div>
+        <div class="capture-frame">
+          <div class="mock-panel chart-panel">
+            <div class="mock-header">
+              <div>
+                <p class="tiny-label">Before / After Comparison</p>
+                <h3>Predicted Exam Score Distribution</h3>
+              </div>
+              <div class="legend">
+                <span><i class="dot baseline"></i>Baseline</span>
+                <span><i class="dot scenario"></i>Scenario</span>
+              </div>
+            </div>
+            <svg viewBox="0 0 860 340" class="chart" role="img" aria-label="Before and after prediction chart">
+              <rect x="68" y="42" width="135" height="220" fill="rgba(185, 28, 28, 0.08)"></rect>
+              <line x1="68" y1="262" x2="810" y2="262" class="axis"></line>
+              <line x1="68" y1="42" x2="68" y2="262" class="axis"></line>
+              <line x1="203" y1="42" x2="203" y2="262" class="grid"></line>
+              <line x1="338" y1="42" x2="338" y2="262" class="grid"></line>
+              <line x1="473" y1="42" x2="473" y2="262" class="grid"></line>
+              <line x1="608" y1="42" x2="608" y2="262" class="grid"></line>
+              <line x1="743" y1="42" x2="743" y2="262" class="grid"></line>
+              <path
+                d="M 90 260 C 150 248, 182 190, 222 120 C 255 70, 300 54, 340 78 C 388 108, 400 160, 435 210 C 460 245, 505 260, 540 260 L 540 262 L 90 262 Z"
+                class="area baseline-area"
+              ></path>
+              <path
+                d="M 210 260 C 258 248, 304 188, 340 130 C 380 72, 438 48, 500 74 C 556 98, 594 162, 630 218 C 648 245, 690 260, 720 260 L 720 262 L 210 262 Z"
+                class="area scenario-area"
+              ></path>
+              <path
+                d="M 90 260 C 150 248, 182 190, 222 120 C 255 70, 300 54, 340 78 C 388 108, 400 160, 435 210 C 460 245, 505 260, 540 260"
+                class="line baseline-line"
+              ></path>
+              <path
+                d="M 210 260 C 258 248, 304 188, 340 130 C 380 72, 438 48, 500 74 C 556 98, 594 162, 630 218 C 648 245, 690 260, 720 260"
+                class="line scenario-line"
+              ></path>
+              <line x1="338" y1="42" x2="338" y2="262" class="threshold"></line>
+              <line x1="320" y1="42" x2="320" y2="262" class="marker baseline-marker"></line>
+              <line x1="492" y1="42" x2="492" y2="262" class="marker scenario-marker"></line>
+              <text x="160" y="66" class="chart-label">Fail threshold</text>
+              <text x="320" y="86" class="chart-label centered">Baseline 64.7</text>
+              <text x="492" y="104" class="chart-label centered">Scenario 73.1</text>
+              <text x="68" y="288" class="axis-label">50</text>
+              <text x="203" y="288" class="axis-label">60</text>
+              <text x="338" y="288" class="axis-label">70</text>
+              <text x="473" y="288" class="axis-label">80</text>
+              <text x="608" y="288" class="axis-label">90</text>
+              <text x="743" y="288" class="axis-label">100</text>
+              <text x="430" y="316" class="axis-title">Predicted exam score</text>
+            </svg>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -34,11 +34,19 @@
 
         <section class="panel panel-main reveal">
           <div class="panel-head">
-            <p class="eyebrow">2. Compare Baseline vs Scenario</p>
+            <p class="eyebrow">2. Compare And Adjust</p>
             <h2>Predicted Score Distribution</h2>
           </div>
           <div id="scoreSummary" class="score-summary"></div>
           <svg id="predictionChart" viewBox="0 0 860 380" role="img" aria-label="Prediction chart"></svg>
+          <section class="in-panel-controls">
+            <div class="panel-head panel-head-compact">
+              <p class="eyebrow">Live Intervention Controls</p>
+              <h3>Editable Variables</h3>
+            </div>
+            <div id="presetBar" class="preset-bar"></div>
+            <div id="controlsGrid" class="controls-grid-inner"></div>
+          </section>
         </section>
 
         <aside class="panel reveal">
@@ -57,16 +65,7 @@
       <section class="controls-grid">
         <section class="panel reveal">
           <div class="panel-head">
-            <p class="eyebrow">4. Intervention Controls</p>
-            <h2>Editable Variables</h2>
-          </div>
-          <div id="presetBar" class="preset-bar"></div>
-          <div id="controlsGrid" class="controls-grid-inner"></div>
-        </section>
-
-        <section class="panel reveal">
-          <div class="panel-head">
-            <p class="eyebrow">5. Student Context</p>
+            <p class="eyebrow">4. Student Context</p>
             <h2>Immutable And Structural Factors</h2>
           </div>
           <div id="contextGrid" class="context-grid"></div>
@@ -76,7 +75,7 @@
       <section class="insight-grid">
         <section class="panel reveal">
           <div class="panel-head">
-            <p class="eyebrow">6. Cohort Overview</p>
+            <p class="eyebrow">5. Cohort Overview</p>
             <h2>Attendance vs Exam Score</h2>
           </div>
           <svg id="scatterChart" viewBox="0 0 560 300" role="img" aria-label="Cohort scatterplot"></svg>
@@ -84,7 +83,7 @@
 
         <section class="panel reveal">
           <div class="panel-head">
-            <p class="eyebrow">7. Feature Context</p>
+            <p class="eyebrow">6. Feature Context</p>
             <h2>Top Correlations With Exam Score</h2>
           </div>
           <svg id="correlationChart" viewBox="0 0 560 300" role="img" aria-label="Correlation chart"></svg>
