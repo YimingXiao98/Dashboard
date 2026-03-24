@@ -903,13 +903,9 @@ function renderCorrelationChart() {
   groups
     .append("text")
     .attr("class", "axis-label")
-    .attr("x", (item) => {
-      const start = x(Math.min(0, item.value));
-      const end = x(Math.max(0, item.value));
-      return item.value >= 0 ? end + 12 : start - 12;
-    })
+    .attr("x", (item) => x(Math.max(0, item.value)) + 12)
+    .attr("text-anchor", "start")
     .attr("y", 13)
-    .attr("text-anchor", (item) => (item.value >= 0 ? "start" : "end"))
     .text((item) => formatCorrelation(item.value));
 }
 
