@@ -848,11 +848,16 @@ function renderCorrelationChart() {
   const plotWidth = width - margin.left - margin.right;
   const barHeight = 18;
   const gap = 8;
-  const maxAbs = Math.max(...data.topCorrelations.map((item) => Math.abs(item.value)));
-  const paddedMaxAbs = maxAbs * 1.16;
+
+  const minVal = Math.min(...data.topCorrelations.map((d) => d.value));
+  const maxVal = Math.max(...data.topCorrelations.map((d) => d.value));
+
+  const leftPad = 1.15;
+  const rightPad = 1.08;
+  // amke the coorelation bar fill the chart
   const x = d3
     .scaleLinear()
-    .domain([-paddedMaxAbs, paddedMaxAbs])
+    .domain([minVal * leftPad, maxVal * rightPad])
     .range([margin.left, margin.left + plotWidth]);
 
   function formatCorrelation(value) {
