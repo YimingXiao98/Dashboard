@@ -1,8 +1,11 @@
 const data = window.PROTOTYPE_DATA;
+const PASSING_THRESHOLD = 60;
+const ACTIONABLE_MUTABILITY = new Set(["high", "medium"]);
 
 const state = {
   selectedStudentId: data.defaultStudentId,
   scenarioValues: {},
+  lastAction: null,
 };
 
 const featureLookup = Object.fromEntries(data.features.map((feature) => [feature.key, feature]));
@@ -14,6 +17,10 @@ function clamp(value, min, max) {
 
 function formatNumber(value, digits = 1) {
   return Number(value).toFixed(digits);
+}
+
+function formatPercent(value, digits = 0) {
+  return `${(value * 100).toFixed(digits)}%`;
 }
 
 function riskClass(riskBand) {
@@ -34,6 +41,30 @@ function getScenarioValues() {
 
 function setScenarioFromStudent(student) {
   state.scenarioValues = deepCopy(student.values);
+  state.lastAction = null;
+}
+
+function formatFeatureValue(featureKey, value) {
+  const feature = featureLookup[featureKey];
+  if (!feature) {
+    return String(value);
+  }
+  if (feature.type === "numeric" && feature.unit) {
+    return feature.unit === "%" ? `${value}${feature.unit}` : `${value} ${feature.unit}`;
+  }
+  return String(value);
+}
+
+function isFeatureChanged(student, featureKey) {
+  const baselineValue = student.values[featureKey];
+  const currentValue = state.scenarioValues[featureKey];
+  return baselineValue !== currentValue;
+}
+
+function getChangedFeatureKeys(student) {
+  return data.features
+    .filter((feature) => ACTIONABLE_MUTABILITY.has(feature.mutable) && isFeatureChanged(student, feature.key))
+    .map((feature) => feature.key);
 }
 
 function encodeValue(featureKey, value) {
@@ -70,7 +101,8 @@ function summarizeSamples(samples) {
   const mean = sorted.reduce((sum, value) => sum + value, 0) / sorted.length;
   const low = sorted[Math.floor(sorted.length * 0.05)];
   const high = sorted[Math.floor(sorted.length * 0.95)];
-  return { mean, low, high };
+  const failProbability = samples.filter((value) => value < PASSING_THRESHOLD).length / samples.length;
+  return { mean, low, high, failProbability };
 }
 
 function buildDensity(samples) {
@@ -95,7 +127,9 @@ function getScoreDelta(student, scenarioValues) {
 }
 
 function buildRecommendations(student, scenarioValues) {
+  const currentPrediction = predictWithModel(scenarioValues, data.model);
   const items = data.features
+    .filter((feature) => ACTIONABLE_MUTABILITY.has(feature.mutable))
     .map((feature) => {
       const currentValue = scenarioValues[feature.key];
       const nextValue = decodeShiftedValue(feature.key, currentValue, 1);
@@ -105,7 +139,7 @@ function buildRecommendations(student, scenarioValues) {
 
       const shiftedScenario = deepCopy(scenarioValues);
       shiftedScenario[feature.key] = nextValue;
-      const delta = predictWithModel(shiftedScenario, data.model) - predictWithModel(scenarioValues, data.model);
+      const delta = predictWithModel(shiftedScenario, data.model) - currentPrediction;
 
       return {
         key: feature.key,
@@ -115,9 +149,9 @@ function buildRecommendations(student, scenarioValues) {
         mutable: feature.mutable,
       };
     })
-    .filter(Boolean)
+    .filter((item) => item && item.delta > 0.01)
     .sort((left, right) => right.delta - left.delta)
-    .slice(0, 4);
+    .slice(0, 5);
 
   return items;
 }
@@ -184,29 +218,95 @@ function renderStudentList() {
 function renderScoreSummary(student, baselineSummary, scenarioSummary) {
   const delta = scenarioSummary.mean - baselineSummary.mean;
   const deltaClass = delta >= 0 ? "delta-positive" : "delta-negative";
+  const failRiskDelta = (scenarioSummary.failProbability - baselineSummary.failProbability) * 100;
+  const failRiskDeltaClass = failRiskDelta <= 0 ? "delta-positive" : "delta-negative";
+  const changedCount = getChangedFeatureKeys(student).length;
   document.getElementById("scoreSummary").innerHTML = `
     <div class="score-tile">
       <strong>${student.actualScore}</strong>
       <span>Actual exam score</span>
+      <div class="score-meta">
+        <div>
+          <label>Observed band</label>
+          <b>${student.riskBand}</b>
+        </div>
+        <div>
+          <label>Passing threshold</label>
+          <b>${PASSING_THRESHOLD}</b>
+        </div>
+      </div>
     </div>
     <div class="score-tile">
       <strong>${formatNumber(baselineSummary.mean)}</strong>
       <span>Baseline expected score</span>
+      <div class="score-meta">
+        <div>
+          <label>90% interval</label>
+          <b>${formatNumber(baselineSummary.low)} to ${formatNumber(baselineSummary.high)}</b>
+        </div>
+        <div>
+          <label>Risk below ${PASSING_THRESHOLD}</label>
+          <b>${formatPercent(baselineSummary.failProbability)}</b>
+        </div>
+      </div>
     </div>
     <div class="score-tile">
       <strong>${formatNumber(scenarioSummary.mean)}</strong>
       <span>Scenario expected score</span>
+      <div class="score-meta">
+        <div>
+          <label>90% interval</label>
+          <b>${formatNumber(scenarioSummary.low)} to ${formatNumber(scenarioSummary.high)}</b>
+        </div>
+        <div>
+          <label>Risk below ${PASSING_THRESHOLD}</label>
+          <b>${formatPercent(scenarioSummary.failProbability)}</b>
+        </div>
+      </div>
     </div>
     <div class="score-tile">
       <strong><span class="delta-pill ${deltaClass}">${delta >= 0 ? "+" : ""}${formatNumber(delta)}</span></strong>
       <span>Lift from current intervention plan</span>
+      <div class="score-meta">
+        <div>
+          <label>Fail-risk change</label>
+          <span class="tag-pill ${failRiskDeltaClass}">
+            ${failRiskDelta >= 0 ? "+" : ""}${formatNumber(failRiskDelta, 0)} pts
+          </span>
+        </div>
+        <div>
+          <label>Changed levers</label>
+          <b>${changedCount}</b>
+        </div>
+      </div>
     </div>
   `;
 }
 
-function renderPredictionChart(student, baselineSummary, scenarioSummary) {
-  const baselinePoints = buildDensity(getPredictionSamples(student.values));
-  const scenarioPoints = buildDensity(getPredictionSamples(state.scenarioValues));
+function renderScenarioFeedback(student) {
+  const feedback = document.getElementById("scenarioFeedback");
+  const changedKeys = getChangedFeatureKeys(student);
+  const changedCount = changedKeys.length;
+
+  if (!state.lastAction) {
+    feedback.className = `scenario-feedback ${changedCount === 0 ? "is-neutral" : "is-edited"}`;
+    feedback.innerHTML =
+      changedCount === 0
+        ? `<strong>Scenario is at baseline.</strong><span>Use a preset, adjust a control, or apply a suggested lever to compare an intervention plan.</span>`
+        : `<strong>Scenario has ${changedCount} edited ${changedCount === 1 ? "lever" : "levers"}.</strong><span>Scroll through the control band to review what differs from baseline.</span>`;
+    return;
+  }
+
+  feedback.className = `scenario-feedback ${state.lastAction.tone || "is-edited"}`;
+  feedback.innerHTML = `
+    <strong>${state.lastAction.title}</strong>
+    <span>${state.lastAction.message}</span>
+  `;
+}
+
+function renderPredictionChart(student, baselineSamples, scenarioSamples, baselineSummary, scenarioSummary) {
+  const baselinePoints = buildDensity(baselineSamples);
+  const scenarioPoints = buildDensity(scenarioSamples);
   const maxY = Math.max(
     ...baselinePoints.map((point) => point.y),
     ...scenarioPoints.map((point) => point.y)
@@ -389,31 +489,51 @@ function renderPredictionChart(student, baselineSummary, scenarioSummary) {
 
 function renderRecommendations(student, scenarioValues) {
   const recommendations = buildRecommendations(student, scenarioValues);
-  document.getElementById("recommendations").innerHTML = recommendations
-    .map(
-      (item, index) => `
-        <div class="recommendation-card">
-          <div class="recommendation-card-header">
-            <strong>${index + 1}. ${item.label}</strong>
-            <span class="tag-pill ${item.delta >= 0 ? "delta-positive" : "delta-negative"}">
-              ${item.delta >= 0 ? "+" : ""}${formatNumber(item.delta)}
-            </span>
-          </div>
-          <p>Next reasonable move: set <strong>${item.label}</strong> to <strong>${item.nextValue}</strong>.</p>
-          <div class="recommendation-actions">
-            <button class="recommendation-apply" data-recommendation-index="${index}">
-              Apply This Lever
-            </button>
-          </div>
-        </div>
-      `
-    )
-    .join("");
+  document.getElementById("recommendations").innerHTML = recommendations.length
+    ? recommendations
+        .map(
+          (item, index) => `
+            <div class="recommendation-card">
+              <div class="recommendation-card-header">
+                <strong>${index + 1}. ${item.label}</strong>
+                <span class="tag-pill ${item.delta >= 0 ? "delta-positive" : "delta-negative"}">
+                  ${item.delta >= 0 ? "+" : ""}${formatNumber(item.delta)}
+                </span>
+              </div>
+              <p>Next reasonable move: set <strong>${item.label}</strong> to <strong>${item.nextValue}</strong>.</p>
+              <div class="recommendation-actions">
+                <button class="recommendation-apply" data-recommendation-index="${index}">
+                  Apply This Lever
+                </button>
+              </div>
+            </div>
+          `
+        )
+        .join("")
+    : `
+      <div class="recommendation-card recommendation-card-empty">
+        <strong>No higher-value actionable levers remain.</strong>
+        <p>The current scenario is already using the available editable variables near their helpful range.</p>
+      </div>
+    `;
 
   document.querySelectorAll("[data-recommendation-index]").forEach((button) => {
     button.addEventListener("click", () => {
       const recommendation = recommendations[Number(button.dataset.recommendationIndex)];
+      const previousValue = state.scenarioValues[recommendation.key];
       state.scenarioValues[recommendation.key] = recommendation.nextValue;
+      const changedCount = getChangedFeatureKeys(student).length;
+      state.lastAction = {
+        tone: "is-success",
+        featureKey: recommendation.key,
+        title: `Applied recommendation: ${recommendation.label}`,
+        message: `${recommendation.label} moved from ${formatFeatureValue(
+          recommendation.key,
+          previousValue
+        )} to ${formatFeatureValue(recommendation.key, recommendation.nextValue)}. ${changedCount} ${
+          changedCount === 1 ? "lever now differs" : "levers now differ"
+        } from baseline.`,
+      };
       renderAll(false);
     });
   });
@@ -439,9 +559,12 @@ function renderRecommendations(student, scenarioValues) {
 function renderControls(student) {
   const controlsGrid = document.getElementById("controlsGrid");
   controlsGrid.innerHTML = data.features
+    .filter((feature) => ACTIONABLE_MUTABILITY.has(feature.mutable))
     .map((feature) => {
       const baselineValue = student.values[feature.key];
       const currentValue = state.scenarioValues[feature.key];
+      const isChanged = baselineValue !== currentValue;
+      const isLastTouched = state.lastAction?.featureKey === feature.key;
       const mutabilityLabel =
         feature.mutable === "high"
           ? "Directly actionable"
@@ -454,13 +577,18 @@ function renderControls(student) {
             <strong>${feature.label}</strong>
             <p>${mutabilityLabel}</p>
           </div>
-          <div class="control-value">${currentValue}</div>
+          <div class="control-side">
+            <span class="tag-pill control-state ${isChanged ? "delta-positive" : ""}">
+              ${isChanged ? "Edited" : "Baseline"}
+            </span>
+            <div class="control-value">${formatFeatureValue(feature.key, currentValue)}</div>
+          </div>
         </div>
       `;
 
       if (feature.type === "numeric") {
         return `
-          <div class="control-card">
+          <div class="control-card ${isChanged ? "changed" : ""} ${isLastTouched ? "focused" : ""}">
             ${header}
             <input
               type="range"
@@ -470,13 +598,13 @@ function renderControls(student) {
               value="${currentValue}"
               data-feature="${feature.key}"
             />
-            <p>Baseline: ${baselineValue}${feature.unit ? ` ${feature.unit}` : ""}</p>
+            <p>Baseline: ${formatFeatureValue(feature.key, baselineValue)}</p>
           </div>
         `;
       }
 
       return `
-        <div class="control-card">
+        <div class="control-card ${isChanged ? "changed" : ""} ${isLastTouched ? "focused" : ""}">
           ${header}
           <select data-feature="${feature.key}">
             ${feature.options
@@ -496,8 +624,19 @@ function renderControls(student) {
     element.addEventListener("input", (event) => {
       const featureKey = event.target.dataset.feature;
       const feature = featureLookup[featureKey];
+      const previousValue = state.scenarioValues[featureKey];
       state.scenarioValues[featureKey] =
         feature.type === "numeric" ? Number(event.target.value) : event.target.value;
+      const changedCount = getChangedFeatureKeys(student).length;
+      state.lastAction = {
+        tone: "is-edited",
+        featureKey,
+        title: `Updated scenario: ${feature.label}`,
+        message: `${feature.label} changed from ${formatFeatureValue(featureKey, previousValue)} to ${formatFeatureValue(
+          featureKey,
+          state.scenarioValues[featureKey]
+        )}. ${changedCount} ${changedCount === 1 ? "lever now differs" : "levers now differ"} from baseline.`,
+      };
       renderAll(false);
     });
   });
@@ -524,18 +663,40 @@ function renderPresets(student) {
         nextValues[featureKey] = decodeShiftedValue(featureKey, nextValues[featureKey], delta);
       });
       state.scenarioValues = nextValues;
+      const changedCount = getChangedFeatureKeys(student).length;
+      state.lastAction = {
+        tone: "is-success",
+        title: `Applied preset: ${preset.label}`,
+        message: `${preset.description}. ${changedCount} ${
+          changedCount === 1 ? "lever now differs" : "levers now differ"
+        } from baseline.`,
+      };
       renderAll(false);
     });
   });
 
   document.getElementById("resetScenario").addEventListener("click", () => {
     setScenarioFromStudent(student);
+    state.lastAction = {
+      tone: "is-neutral",
+      title: "Scenario reset to baseline",
+      message: "The editable controls now match the selected student's original values again.",
+    };
     renderAll(false);
   });
 }
 
 function renderContext(student) {
-  document.getElementById("contextGrid").innerHTML = data.contextKeys
+  const contextKeys = [
+    ...new Set([
+      ...data.contextKeys,
+      ...data.features
+        .filter((feature) => !ACTIONABLE_MUTABILITY.has(feature.mutable))
+        .map((feature) => feature.key),
+    ]),
+  ];
+
+  document.getElementById("contextGrid").innerHTML = contextKeys
     .map(
       (key) => `
         <div class="context-card">
@@ -761,7 +922,8 @@ function renderAll(rebuildLists = true) {
     renderStudentList();
   }
   renderScoreSummary(student, baselineSummary, scenarioSummary);
-  renderPredictionChart(student, baselineSummary, scenarioSummary);
+  renderScenarioFeedback(student);
+  renderPredictionChart(student, baselineSamples, scenarioSamples, baselineSummary, scenarioSummary);
   renderRecommendations(student, state.scenarioValues);
   renderPresets(student);
   renderControls(student);

@@ -324,7 +324,7 @@ h3 {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .panel-main {
@@ -340,17 +340,88 @@ h3 {
   padding: 14px 16px;
 }
 
-.score-tile strong {
+.score-tile > strong {
   display: block;
   font-size: 1.55rem;
   color: var(--navy);
 }
 
-.score-tile span {
+.score-tile > span {
   display: block;
   margin-top: 4px;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.score-meta {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(31, 41, 51, 0.08);
+}
+
+.score-meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.score-meta label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.score-meta b {
+  color: var(--navy);
+  font-size: 0.86rem;
+}
+
+.score-meta .tag-pill {
+  justify-self: end;
+}
+
+.scenario-feedback {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(18, 50, 71, 0.06);
+}
+
+.scenario-feedback strong,
+.scenario-feedback span {
+  display: block;
+}
+
+.scenario-feedback strong {
+  color: var(--navy);
+  font-size: 0.96rem;
+}
+
+.scenario-feedback span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.scenario-feedback.is-success {
+  background: rgba(15, 118, 110, 0.1);
+  border-color: rgba(15, 118, 110, 0.18);
+}
+
+.scenario-feedback.is-edited {
+  background: rgba(217, 119, 6, 0.09);
+  border-color: rgba(217, 119, 6, 0.14);
+}
+
+.scenario-feedback.is-neutral {
+  background: rgba(18, 50, 71, 0.06);
 }
 
 #predictionChart {
@@ -408,6 +479,10 @@ h3 {
 
 .recommendation-actions {
   margin-top: 12px;
+}
+
+.recommendation-card-empty {
+  background: rgba(18, 50, 71, 0.04);
 }
 
 .recommendation-apply {
@@ -476,10 +551,31 @@ h3 {
   gap: 12px;
 }
 
+.control-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.control-state {
+  padding-inline: 8px;
+}
+
 .control-value {
   color: var(--navy);
   font-size: 1rem;
   font-weight: 700;
+}
+
+.control-card.changed {
+  border-color: rgba(15, 118, 110, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.08);
+}
+
+.control-card.focused {
+  border-color: rgba(15, 118, 110, 0.44);
+  box-shadow: 0 18px 32px rgba(15, 118, 110, 0.12);
 }
 
 .controls-band .control-card,

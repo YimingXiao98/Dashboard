@@ -14,7 +14,7 @@ This workspace now separates the class deliverables from the runnable prototype.
 
 ## Prototype
 
-Open `prototype/index.html` in a browser. The page reads its data from `prototype/data/prototype-data.js` and renders the charts with D3.js in the browser, so it does not need a backend server. It currently loads D3.js from a CDN, so the browser should have internet access when opening the page.
+Open `prototype/index.html` in a browser. The page reads its data from `prototype/data/prototype-data.js` and renders the charts with a vendored local copy of D3.js in the browser, so it does not need a backend server or internet access.
 
 ## How To Interact With The Webpage
 
