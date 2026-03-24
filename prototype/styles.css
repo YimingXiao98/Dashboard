@@ -248,6 +248,11 @@ h3 {
   padding-right: 6px;
 }
 
+.student-list {
+  padding-top: 4px;
+  padding-bottom: 6px;
+}
+
 .student-card {
   width: 100%;
   border: 1px solid var(--line);
