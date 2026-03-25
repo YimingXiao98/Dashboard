@@ -131,12 +131,6 @@ h3 {
   margin: 14px 0 0;
 }
 
-.hero-side {
-  display: grid;
-  gap: 14px;
-  align-content: start;
-}
-
 .hero-metrics {
   display: grid;
   grid-template-columns: 1fr;
@@ -221,50 +215,6 @@ h3 {
   flex-direction: column;
   gap: 4px;
   margin-bottom: 18px;
-}
-
-.floating-qr {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 12;
-  display: grid;
-  gap: 8px;
-  width: 204px;
-  padding: 12px;
-  text-decoration: none;
-  color: inherit;
-  background: rgba(255, 251, 245, 0.92);
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-}
-
-.floating-qr:hover {
-  transform: translateY(-2px);
-  border-color: rgba(15, 118, 110, 0.34);
-  box-shadow: 0 18px 34px rgba(15, 118, 110, 0.16);
-}
-
-.floating-qr-copy {
-  display: grid;
-  gap: 2px;
-}
-
-.floating-qr-image {
-  width: 100%;
-  max-width: 182px;
-  justify-self: center;
-  border-radius: 12px;
-  border: 1px solid rgba(31, 41, 51, 0.08);
-  background: white;
-  padding: 3px;
-}
-
-.floating-qr-url {
-  color: var(--navy);
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-align: center;
-  word-break: break-word;
 }
 
 .panel-head-compact {
@@ -831,18 +781,4 @@ select {
     max-height: none;
   }
 
-  .floating-qr {
-    right: 12px;
-    bottom: 12px;
-    width: 168px;
-    padding: 12px;
-  }
-
-  .floating-qr-image {
-    max-width: 122px;
-  }
-
-  .floating-qr-url {
-    font-size: 0.68rem;
-  }
 }
