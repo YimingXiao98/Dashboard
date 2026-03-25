@@ -101,8 +101,7 @@ function summarizeSamples(samples) {
   const mean = sorted.reduce((sum, value) => sum + value, 0) / sorted.length;
   const low = sorted[Math.floor(sorted.length * 0.05)];
   const high = sorted[Math.floor(sorted.length * 0.95)];
-  const failProbability = samples.filter((value) => value < PASSING_THRESHOLD).length / samples.length;
-  return { mean, low, high, failProbability };
+  return { mean, low, high };
 }
 
 function quantile(sortedValues, q) {
@@ -161,6 +160,47 @@ function normalizeDensity(points) {
   return points.map((point) => ({ ...point, y: point.y / area }));
 }
 
+function interpolateY(leftPoint, rightPoint, xValue) {
+  if (!leftPoint || !rightPoint || rightPoint.x === leftPoint.x) {
+    return leftPoint?.y ?? rightPoint?.y ?? 0;
+  }
+  const weight = (xValue - leftPoint.x) / (rightPoint.x - leftPoint.x);
+  return leftPoint.y + (rightPoint.y - leftPoint.y) * weight;
+}
+
+function clipDensityPoints(points, threshold) {
+  const clipped = points.filter((point) => point.x <= threshold);
+  const lastPoint = clipped[clipped.length - 1];
+  if (lastPoint && Math.abs(lastPoint.x - threshold) < 1e-9) {
+    return clipped;
+  }
+
+  const insertIndex = points.findIndex((point) => point.x > threshold);
+  if (insertIndex <= 0) {
+    return clipped;
+  }
+
+  const leftPoint = points[insertIndex - 1];
+  const rightPoint = points[insertIndex];
+  return [
+    ...clipped,
+    {
+      x: threshold,
+      y: interpolateY(leftPoint, rightPoint, threshold),
+    },
+  ];
+}
+
+function integrateDensity(points) {
+  let area = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const current = points[index];
+    area += ((previous.y + current.y) / 2) * (current.x - previous.x);
+  }
+  return area;
+}
+
 function buildDensity(samples) {
   const bandwidth = estimateBandwidth(samples);
   const points = [];
@@ -179,9 +219,14 @@ function buildDensity(samples) {
     points.push({ x: score, y: density / normalizer });
   }
 
+  const normalizedPoints = normalizeDensity(points);
+  const failRegionPoints = clipDensityPoints(normalizedPoints, PASSING_THRESHOLD);
+
   return {
     bandwidth,
-    points: normalizeDensity(points),
+    points: normalizedPoints,
+    failRegionPoints,
+    failProbability: integrateDensity(failRegionPoints),
   };
 }
 
@@ -402,6 +447,12 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
     .y0(baselineY)
     .y1((point) => y(point.y));
 
+  const failArea = d3
+    .area()
+    .x((point) => x(point.x))
+    .y0(baselineY)
+    .y1((point) => y(point.y));
+
   svg
     .append("rect")
     .attr("x", x(45))
@@ -458,6 +509,18 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
     .attr("x2", margin.left)
     .attr("y1", margin.top)
     .attr("y2", baselineY);
+
+  svg
+    .append("path")
+    .datum(baselineDensity.failRegionPoints)
+    .attr("class", "baseline-fail-fill")
+    .attr("d", failArea);
+
+  svg
+    .append("path")
+    .datum(scenarioDensity.failRegionPoints)
+    .attr("class", "scenario-fail-fill")
+    .attr("d", failArea);
 
   svg.append("path").datum(baselinePoints).attr("class", "baseline-fill").attr("d", area);
   svg.append("path").datum(scenarioPoints).attr("class", "scenario-fill").attr("d", area);
@@ -1028,6 +1091,10 @@ function renderAll(rebuildLists = true) {
   const scenarioSamples = getPredictionSamples(state.scenarioValues);
   const baselineSummary = summarizeSamples(baselineSamples);
   const scenarioSummary = summarizeSamples(scenarioSamples);
+  const baselineDensity = buildDensity(baselineSamples);
+  const scenarioDensity = buildDensity(scenarioSamples);
+  baselineSummary.failProbability = baselineDensity.failProbability;
+  scenarioSummary.failProbability = scenarioDensity.failProbability;
 
   renderHeroMetrics();
   if (rebuildLists) {

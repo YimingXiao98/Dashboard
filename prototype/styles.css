@@ -662,6 +662,14 @@ select {
   fill: rgba(15, 118, 110, 0.16);
 }
 
+.baseline-fail-fill {
+  fill: rgba(217, 119, 6, 0.34);
+}
+
+.scenario-fail-fill {
+  fill: rgba(15, 118, 110, 0.34);
+}
+
 .baseline-rug,
 .scenario-rug {
   stroke-width: 1;
