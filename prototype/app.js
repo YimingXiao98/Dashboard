@@ -562,7 +562,7 @@ function renderRecommendations(student, scenarioValues) {
               <p>set to <strong>${item.nextValue}</strong></p>
               <div class="recommendation-actions">
                 <button class="recommendation-apply" data-recommendation-index="${index}">
-                  Apply This Lever
+                  Apply
                 </button>
               </div>
             </div>
