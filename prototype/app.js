@@ -139,7 +139,7 @@ function estimateBandwidth(samples) {
   const iqr = quantile(sorted, 0.75) - quantile(sorted, 0.25);
   const robustScale = Math.min(std || Infinity, iqr / 1.34 || Infinity);
   const scale = Number.isFinite(robustScale) ? robustScale : std || 1;
-  return Math.max(0.35, 0.9 * scale * samples.length ** (-1 / 5));
+  return Math.max(0.85, 1.35 * 0.9 * scale * samples.length ** (-1 / 5));
 }
 
 function gaussianKernel(z) {
