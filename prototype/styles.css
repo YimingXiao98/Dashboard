@@ -12,7 +12,8 @@
   --rose: #b91c1c;
   --navy: #123247;
   --shadow: 0 20px 60px rgba(18, 50, 71, 0.12);
-  --display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --display:
+    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
   --ui: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
 }
 
@@ -26,8 +27,16 @@ body {
   font-family: var(--ui);
   color: var(--ink);
   background:
-    radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 28%),
-    radial-gradient(circle at top right, rgba(217, 119, 6, 0.15), transparent 24%),
+    radial-gradient(
+      circle at top left,
+      rgba(15, 118, 110, 0.18),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(217, 119, 6, 0.15),
+      transparent 24%
+    ),
     linear-gradient(180deg, #f8f2e9 0%, #efe3d3 100%);
   overflow-x: hidden;
 }
@@ -85,7 +94,11 @@ body {
   position: absolute;
   inset: auto -5% -30% 35%;
   height: 180px;
-  background: linear-gradient(90deg, rgba(15, 118, 110, 0.14), rgba(217, 119, 6, 0.08));
+  background: linear-gradient(
+    90deg,
+    rgba(15, 118, 110, 0.14),
+    rgba(217, 119, 6, 0.08)
+  );
   transform: rotate(-6deg);
 }
 
@@ -257,7 +270,10 @@ h3 {
   cursor: pointer;
   font: inherit;
   text-align: left;
-  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .student-card:hover,
@@ -499,7 +515,10 @@ h3 {
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
 }
 
 .recommendation-apply:hover {
@@ -525,7 +544,13 @@ h3 {
   font-family: inherit;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 180ms ease, background 180ms ease;
+  transition:
+    transform 180ms ease,
+    background 180ms ease;
+}
+
+.reset-button {
+  color: rgba(255, 0, 0, 0.8);
 }
 
 .preset-button:hover,
