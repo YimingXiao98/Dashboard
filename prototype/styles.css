@@ -131,11 +131,64 @@ h3 {
   margin: 14px 0 0;
 }
 
+.hero-side {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
 .hero-metrics {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
   align-content: start;
+}
+
+.hero-qr-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.hero-qr-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(15, 118, 110, 0.32);
+  box-shadow: 0 16px 28px rgba(15, 118, 110, 0.12);
+}
+
+.hero-qr-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.hero-qr-copy span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.hero-qr-image {
+  width: 100%;
+  max-width: 164px;
+  justify-self: center;
+  border-radius: 16px;
+  border: 1px solid rgba(31, 41, 51, 0.08);
+  background: white;
+  padding: 8px;
+}
+
+.hero-qr-url {
+  color: var(--navy);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+  word-break: break-word;
 }
 
 .metric-card {
