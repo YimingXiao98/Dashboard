@@ -105,19 +105,84 @@ function summarizeSamples(samples) {
   return { mean, low, high, failProbability };
 }
 
+function quantile(sortedValues, q) {
+  if (!sortedValues.length) {
+    return 0;
+  }
+  const position = (sortedValues.length - 1) * q;
+  const lower = Math.floor(position);
+  const upper = Math.ceil(position);
+  if (lower === upper) {
+    return sortedValues[lower];
+  }
+  const weight = position - lower;
+  return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
+}
+
+function standardDeviation(values) {
+  if (values.length <= 1) {
+    return 0;
+  }
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const variance =
+    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (values.length - 1);
+  return Math.sqrt(variance);
+}
+
+function estimateBandwidth(samples) {
+  if (samples.length < 2) {
+    return 1;
+  }
+
+  const sorted = [...samples].sort((left, right) => left - right);
+  const std = standardDeviation(sorted);
+  const iqr = quantile(sorted, 0.75) - quantile(sorted, 0.25);
+  const robustScale = Math.min(std || Infinity, iqr / 1.34 || Infinity);
+  const scale = Number.isFinite(robustScale) ? robustScale : std || 1;
+  return Math.max(0.35, 0.9 * scale * samples.length ** (-1 / 5));
+}
+
+function gaussianKernel(z) {
+  return Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI);
+}
+
+function normalizeDensity(points) {
+  let area = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const current = points[index];
+    area += ((previous.y + current.y) / 2) * (current.x - previous.x);
+  }
+
+  if (area <= 0) {
+    return points;
+  }
+
+  return points.map((point) => ({ ...point, y: point.y / area }));
+}
+
 function buildDensity(samples) {
+  const bandwidth = estimateBandwidth(samples);
   const points = [];
-  const bandwidth = 1.8;
-  const normalizer = samples.length * bandwidth * Math.sqrt(2 * Math.PI);
-  for (let score = 45; score <= 100; score += 0.5) {
+  const xMin = 45;
+  const xMax = 100;
+  const steps = 440;
+  const stepSize = (xMax - xMin) / (steps - 1);
+  const normalizer = samples.length * bandwidth;
+
+  for (let index = 0; index < steps; index += 1) {
+    const score = xMin + index * stepSize;
     let density = 0;
     for (const sample of samples) {
-      const z = (score - sample) / bandwidth;
-      density += Math.exp(-0.5 * z * z);
+      density += gaussianKernel((score - sample) / bandwidth);
     }
     points.push({ x: score, y: density / normalizer });
   }
-  return points;
+
+  return {
+    bandwidth,
+    points: normalizeDensity(points),
+  };
 }
 
 function getScoreDelta(student, scenarioValues) {
@@ -305,8 +370,10 @@ function renderScenarioFeedback(student) {
 }
 
 function renderPredictionChart(student, baselineSamples, scenarioSamples, baselineSummary, scenarioSummary) {
-  const baselinePoints = buildDensity(baselineSamples);
-  const scenarioPoints = buildDensity(scenarioSamples);
+  const baselineDensity = buildDensity(baselineSamples);
+  const scenarioDensity = buildDensity(scenarioSamples);
+  const baselinePoints = baselineDensity.points;
+  const scenarioPoints = scenarioDensity.points;
   const maxY = Math.max(
     ...baselinePoints.map((point) => point.y),
     ...scenarioPoints.map((point) => point.y)
@@ -319,7 +386,7 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
   const x = d3.scaleLinear().domain([45, 100]).range([margin.left, margin.left + plotWidth]);
   const y = d3.scaleLinear().domain([0, maxY * 1.15]).range([margin.top + plotHeight, margin.top]);
   const xTicks = [50, 60, 70, 80, 90, 100];
-  const yTicks = [0, maxY * 0.5, maxY];
+  const yTicks = [0, maxY * 0.33, maxY * 0.66, maxY].map((value) => Number(value.toFixed(3)));
   const baselineY = margin.top + plotHeight;
   const svg = d3.select("#predictionChart");
   svg.selectAll("*").remove();
@@ -366,6 +433,17 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
     .attr("y2", (tick) => y(tick));
 
   svg
+    .append("g")
+    .selectAll("text")
+    .data(yTicks.filter((tick, index, ticks) => index < ticks.length - 1))
+    .join("text")
+    .attr("class", "axis-label")
+    .attr("x", margin.left - 10)
+    .attr("y", (tick) => y(tick) + 4)
+    .attr("text-anchor", "end")
+    .text((tick) => tick.toFixed(2));
+
+  svg
     .append("line")
     .attr("class", "axis-line")
     .attr("x1", margin.left)
@@ -385,6 +463,32 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
   svg.append("path").datum(scenarioPoints).attr("class", "scenario-fill").attr("d", area);
   svg.append("path").datum(baselinePoints).attr("class", "baseline-line").attr("d", line);
   svg.append("path").datum(scenarioPoints).attr("class", "scenario-line").attr("d", line);
+
+  const rugHeight = 10;
+  const baselineRugY = baselineY - 2;
+  const scenarioRugY = baselineY - rugHeight - 4;
+
+  svg
+    .append("g")
+    .selectAll("line")
+    .data(baselineSamples)
+    .join("line")
+    .attr("class", "baseline-rug")
+    .attr("x1", (sample) => x(sample))
+    .attr("x2", (sample) => x(sample))
+    .attr("y1", baselineRugY)
+    .attr("y2", baselineRugY - rugHeight);
+
+  svg
+    .append("g")
+    .selectAll("line")
+    .data(scenarioSamples)
+    .join("line")
+    .attr("class", "scenario-rug")
+    .attr("x1", (sample) => x(sample))
+    .attr("x2", (sample) => x(sample))
+    .attr("y1", scenarioRugY)
+    .attr("y2", scenarioRugY - rugHeight);
 
   [
     { xValue: baselineSummary.mean, stroke: "#d97706", dash: "6 6" },
@@ -425,10 +529,29 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
     .attr("y", 12)
     .text("Red zone: predicted failing range below 60");
 
+  svg
+    .append("text")
+    .attr("class", "chart-subtitle")
+    .attr("x", margin.left)
+    .attr("y", 30)
+    .text(
+      `Gaussian KDE from ${baselineSamples.length} bootstrap predictions; each curve is normalized to total area 1`
+    );
+
   const legendItems = [
     { color: "#b91c1c", dash: "6 3", text: "Fail threshold (60)", strokeWidth: 1.5 },
-    { color: "#d97706", dash: "6 6", text: `Baseline ${formatNumber(baselineSummary.mean)}`, strokeWidth: 2 },
-    { color: "#0f766e", dash: "6 6", text: `Scenario ${formatNumber(scenarioSummary.mean)}`, strokeWidth: 2 },
+    {
+      color: "#d97706",
+      dash: "6 6",
+      text: `Baseline ${formatNumber(baselineSummary.mean)} (h=${formatNumber(baselineDensity.bandwidth, 2)})`,
+      strokeWidth: 2,
+    },
+    {
+      color: "#0f766e",
+      dash: "6 6",
+      text: `Scenario ${formatNumber(scenarioSummary.mean)} (h=${formatNumber(scenarioDensity.bandwidth, 2)})`,
+      strokeWidth: 2,
+    },
     { color: "#123247", dash: null, text: `Actual ${student.actualScore}`, strokeWidth: 2 },
   ];
 
@@ -484,7 +607,7 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
     .attr("class", "axis-label")
     .attr("transform", `translate(16 ${margin.top + plotHeight / 2}) rotate(-90)`)
     .attr("text-anchor", "middle")
-    .text("Density from bootstrap predictions");
+    .text("Probability density estimate");
 }
 
 function renderRecommendations(student, scenarioValues) {
