@@ -529,15 +529,6 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
     .attr("y", 12)
     .text("Red zone: predicted failing range below 60");
 
-  svg
-    .append("text")
-    .attr("class", "chart-subtitle")
-    .attr("x", margin.left)
-    .attr("y", 30)
-    .text(
-      `Gaussian KDE from ${baselineSamples.length} bootstrap predictions; each curve is normalized to total area 1`
-    );
-
   const legendItems = [
     { color: "#b91c1c", dash: "6 3", text: "Fail threshold (60)", strokeWidth: 1.5 },
     {
