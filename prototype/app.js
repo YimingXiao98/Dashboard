@@ -249,26 +249,12 @@ function renderScoreSummary(student, baselineSummary, scenarioSummary) {
       <span>Actual exam score</span>
       <div class="score-meta">
         <div>
+          <label>Baseline expected</label>
+          <b>${formatNumber(baselineSummary.mean)}</b>
+        </div>
+        <div>
           <label>Observed band</label>
           <b>${student.riskBand}</b>
-        </div>
-        <div>
-          <label>Passing threshold</label>
-          <b>${PASSING_THRESHOLD}</b>
-        </div>
-      </div>
-    </div>
-    <div class="score-tile">
-      <strong>${formatNumber(baselineSummary.mean)}</strong>
-      <span>Baseline expected score</span>
-      <div class="score-meta">
-        <div>
-          <label>90% interval</label>
-          <b>${formatNumber(baselineSummary.low)} to ${formatNumber(baselineSummary.high)}</b>
-        </div>
-        <div>
-          <label>Risk below ${PASSING_THRESHOLD}</label>
-          <b>${formatPercent(baselineSummary.failProbability)}</b>
         </div>
       </div>
     </div>
@@ -293,7 +279,7 @@ function renderScoreSummary(student, baselineSummary, scenarioSummary) {
         <div>
           <label>Fail-risk change</label>
           <span class="tag-pill ${failRiskDeltaClass}">
-            ${failRiskDelta >= 0 ? "+" : ""}${formatNumber(failRiskDelta, 0)} pts
+            ${failRiskDelta > 0 ? "+" : ""}${formatNumber(failRiskDelta, 0)} pts
           </span>
         </div>
         <div>
