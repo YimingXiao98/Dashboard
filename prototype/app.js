@@ -597,13 +597,13 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
     {
       color: "#d97706",
       dash: "6 6",
-      text: `Baseline ${formatNumber(baselineSummary.mean)} (h=${formatNumber(baselineDensity.bandwidth, 2)})`,
+      text: `Baseline ${formatNumber(baselineSummary.mean)}`,
       strokeWidth: 2,
     },
     {
       color: "#0f766e",
       dash: "6 6",
-      text: `Scenario ${formatNumber(scenarioSummary.mean)} (h=${formatNumber(scenarioDensity.bandwidth, 2)})`,
+      text: `Scenario ${formatNumber(scenarioSummary.mean)}`,
       strokeWidth: 2,
     },
     { color: "#123247", dash: null, text: `Actual ${student.actualScore}`, strokeWidth: 2 },
