@@ -500,7 +500,7 @@ function renderRecommendations(student, scenarioValues) {
                   ${item.delta >= 0 ? "+" : ""}${formatNumber(item.delta)}
                 </span>
               </div>
-              <p>Next reasonable move: set <strong>${item.label}</strong> to <strong>${item.nextValue}</strong>.</p>
+              <p>Next reasonable move: set <strong>${item.label}</strong> to <strong>${item.nextValue}</strong></p>
               <div class="recommendation-actions">
                 <button class="recommendation-apply" data-recommendation-index="${index}">
                   Apply This Lever
