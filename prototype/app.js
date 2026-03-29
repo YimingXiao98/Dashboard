@@ -617,6 +617,49 @@ function renderRecommendations(student, scenarioValues) {
       .join("");
 }
 
+function renderScenarioOutputs(student) {
+  const baselineSamples = getPredictionSamples(student.values);
+  const scenarioSamples = getPredictionSamples(state.scenarioValues);
+  const baselineSummary = summarizeSamples(baselineSamples);
+  const scenarioSummary = summarizeSamples(scenarioSamples);
+
+  renderScoreSummary(student, baselineSummary, scenarioSummary);
+  renderScenarioFeedback(student);
+  renderPredictionChart(
+    student,
+    baselineSamples,
+    scenarioSamples,
+    baselineSummary,
+    scenarioSummary,
+  );
+  renderRecommendations(student, state.scenarioValues);
+}
+
+function refreshControlCardState(controlElement, student, featureKey) {
+  const card = controlElement.closest(".control-card");
+  if (!card) {
+    return;
+  }
+
+  const baselineValue = student.values[featureKey];
+  const currentValue = state.scenarioValues[featureKey];
+  const isChanged = baselineValue !== currentValue;
+
+  card.classList.toggle("changed", isChanged);
+  card.classList.add("focused");
+
+  const statePill = card.querySelector(".control-state");
+  if (statePill) {
+    statePill.classList.toggle("delta-positive", isChanged);
+    statePill.textContent = isChanged ? "Edited" : "Baseline";
+  }
+
+  const valueEl = card.querySelector(".control-value");
+  if (valueEl) {
+    valueEl.textContent = formatFeatureValue(featureKey, currentValue);
+  }
+}
+
 function renderControls(student) {
   const controlsGrid = document.getElementById("controlsGrid");
   controlsGrid.innerHTML = data.features
@@ -682,7 +725,9 @@ function renderControls(student) {
     .join("");
 
   controlsGrid.querySelectorAll("[data-feature]").forEach((element) => {
-    element.addEventListener("input", (event) => {
+    const isSelect = element.tagName === "SELECT";
+    const eventName = isSelect ? "change" : "input";
+    element.addEventListener(eventName, (event) => {
       const featureKey = event.target.dataset.feature;
       const feature = featureLookup[featureKey];
       const previousValue = state.scenarioValues[featureKey];
@@ -700,6 +745,13 @@ function renderControls(student) {
           state.scenarioValues[featureKey],
         )}. ${changedCount} ${changedCount === 1 ? "lever now differs" : "levers now differ"} from baseline.`,
       };
+
+      if (feature.type === "numeric") {
+        refreshControlCardState(element, student, featureKey);
+        renderScenarioOutputs(student);
+        return;
+      }
+
       renderAll(false);
     });
   });
@@ -1044,10 +1096,6 @@ function renderCorrelationChart() {
 
 function renderAll(rebuildLists = true) {
   const student = getSelectedStudent();
-  const baselineSamples = getPredictionSamples(student.values);
-  const scenarioSamples = getPredictionSamples(state.scenarioValues);
-  const baselineSummary = summarizeSamples(baselineSamples);
-  const scenarioSummary = summarizeSamples(scenarioSamples);
 
   renderHeroMetrics();
   if (rebuildLists) {
@@ -1055,16 +1103,7 @@ function renderAll(rebuildLists = true) {
   } else {
     renderStudentList();
   }
-  renderScoreSummary(student, baselineSummary, scenarioSummary);
-  renderScenarioFeedback(student);
-  renderPredictionChart(
-    student,
-    baselineSamples,
-    scenarioSamples,
-    baselineSummary,
-    scenarioSummary,
-  );
-  renderRecommendations(student, state.scenarioValues);
+  renderScenarioOutputs(student);
   renderPresets(student);
   renderControls(student);
   renderContext(student);
