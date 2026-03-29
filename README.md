@@ -2,6 +2,8 @@
 
 This workspace now separates the class deliverables from the runnable prototype.
 
+[**Demo Site**](https://peterchiang0101.github.io/CSCE679-Project/)
+
 ## Structure
 
 - `paper/`: original LaTeX paper source, bibliography, and figure assets

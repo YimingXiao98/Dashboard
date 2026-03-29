@@ -6,10 +6,16 @@ const state = {
   selectedStudentId: data.defaultStudentId,
   scenarioValues: {},
   lastAction: null,
+  isCohortModalOpen: false,
+  selectedModalFeatureKey: null,
 };
 
-const featureLookup = Object.fromEntries(data.features.map((feature) => [feature.key, feature]));
-const studentLookup = Object.fromEntries(data.students.map((student) => [student.id, student]));
+const featureLookup = Object.fromEntries(
+  data.features.map((feature) => [feature.key, feature]),
+);
+const studentLookup = Object.fromEntries(
+  data.students.map((student) => [student.id, student]),
+);
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -50,7 +56,9 @@ function formatFeatureValue(featureKey, value) {
     return String(value);
   }
   if (feature.type === "numeric" && feature.unit) {
-    return feature.unit === "%" ? `${value}${feature.unit}` : `${value} ${feature.unit}`;
+    return feature.unit === "%"
+      ? `${value}${feature.unit}`
+      : `${value} ${feature.unit}`;
   }
   return String(value);
 }
@@ -63,7 +71,11 @@ function isFeatureChanged(student, featureKey) {
 
 function getChangedFeatureKeys(student) {
   return data.features
-    .filter((feature) => ACTIONABLE_MUTABILITY.has(feature.mutable) && isFeatureChanged(student, feature.key))
+    .filter(
+      (feature) =>
+        ACTIONABLE_MUTABILITY.has(feature.mutable) &&
+        isFeatureChanged(student, feature.key),
+    )
     .map((feature) => feature.key);
 }
 
@@ -80,14 +92,20 @@ function decodeShiftedValue(featureKey, currentValue, delta) {
 
   const mapping = data.maps[featureKey];
   const reverseMap = data.reverseMaps[featureKey];
-  const shifted = clamp(mapping[currentValue] + delta, 0, Object.keys(mapping).length - 1);
+  const shifted = clamp(
+    mapping[currentValue] + delta,
+    0,
+    Object.keys(mapping).length - 1,
+  );
   return reverseMap[String(shifted)];
 }
 
 function predictWithModel(values, model) {
   let score = model.intercept;
   data.model.featureOrder.forEach((featureKey) => {
-    score += model.coefficients[featureKey] * encodeValue(featureKey, values[featureKey]);
+    score +=
+      model.coefficients[featureKey] *
+      encodeValue(featureKey, values[featureKey]);
   });
   return score;
 }
@@ -101,133 +119,25 @@ function summarizeSamples(samples) {
   const mean = sorted.reduce((sum, value) => sum + value, 0) / sorted.length;
   const low = sorted[Math.floor(sorted.length * 0.05)];
   const high = sorted[Math.floor(sorted.length * 0.95)];
-  return { mean, low, high };
-}
-
-function quantile(sortedValues, q) {
-  if (!sortedValues.length) {
-    return 0;
-  }
-  const position = (sortedValues.length - 1) * q;
-  const lower = Math.floor(position);
-  const upper = Math.ceil(position);
-  if (lower === upper) {
-    return sortedValues[lower];
-  }
-  const weight = position - lower;
-  return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
-}
-
-function standardDeviation(values) {
-  if (values.length <= 1) {
-    return 0;
-  }
-  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
-  const variance =
-    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (values.length - 1);
-  return Math.sqrt(variance);
-}
-
-function estimateBandwidth(samples) {
-  if (samples.length < 2) {
-    return 1;
-  }
-
-  const sorted = [...samples].sort((left, right) => left - right);
-  const std = standardDeviation(sorted);
-  const iqr = quantile(sorted, 0.75) - quantile(sorted, 0.25);
-  const robustScale = Math.min(std || Infinity, iqr / 1.34 || Infinity);
-  const scale = Number.isFinite(robustScale) ? robustScale : std || 1;
-  return Math.max(0.85, 1.35 * 0.9 * scale * samples.length ** (-1 / 5));
-}
-
-function gaussianKernel(z) {
-  return Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI);
-}
-
-function normalizeDensity(points) {
-  let area = 0;
-  for (let index = 1; index < points.length; index += 1) {
-    const previous = points[index - 1];
-    const current = points[index];
-    area += ((previous.y + current.y) / 2) * (current.x - previous.x);
-  }
-
-  if (area <= 0) {
-    return points;
-  }
-
-  return points.map((point) => ({ ...point, y: point.y / area }));
-}
-
-function interpolateY(leftPoint, rightPoint, xValue) {
-  if (!leftPoint || !rightPoint || rightPoint.x === leftPoint.x) {
-    return leftPoint?.y ?? rightPoint?.y ?? 0;
-  }
-  const weight = (xValue - leftPoint.x) / (rightPoint.x - leftPoint.x);
-  return leftPoint.y + (rightPoint.y - leftPoint.y) * weight;
-}
-
-function clipDensityPoints(points, threshold) {
-  const clipped = points.filter((point) => point.x <= threshold);
-  const lastPoint = clipped[clipped.length - 1];
-  if (lastPoint && Math.abs(lastPoint.x - threshold) < 1e-9) {
-    return clipped;
-  }
-
-  const insertIndex = points.findIndex((point) => point.x > threshold);
-  if (insertIndex <= 0) {
-    return clipped;
-  }
-
-  const leftPoint = points[insertIndex - 1];
-  const rightPoint = points[insertIndex];
-  return [
-    ...clipped,
-    {
-      x: threshold,
-      y: interpolateY(leftPoint, rightPoint, threshold),
-    },
-  ];
-}
-
-function integrateDensity(points) {
-  let area = 0;
-  for (let index = 1; index < points.length; index += 1) {
-    const previous = points[index - 1];
-    const current = points[index];
-    area += ((previous.y + current.y) / 2) * (current.x - previous.x);
-  }
-  return area;
+  const failProbability =
+    samples.filter((value) => value < PASSING_THRESHOLD).length /
+    samples.length;
+  return { mean, low, high, failProbability };
 }
 
 function buildDensity(samples) {
-  const bandwidth = estimateBandwidth(samples);
   const points = [];
-  const xMin = 45;
-  const xMax = 100;
-  const steps = 440;
-  const stepSize = (xMax - xMin) / (steps - 1);
-  const normalizer = samples.length * bandwidth;
-
-  for (let index = 0; index < steps; index += 1) {
-    const score = xMin + index * stepSize;
+  const bandwidth = 1.8;
+  const normalizer = samples.length * bandwidth * Math.sqrt(2 * Math.PI);
+  for (let score = 45; score <= 100; score += 0.5) {
     let density = 0;
     for (const sample of samples) {
-      density += gaussianKernel((score - sample) / bandwidth);
+      const z = (score - sample) / bandwidth;
+      density += Math.exp(-0.5 * z * z);
     }
     points.push({ x: score, y: density / normalizer });
   }
-
-  const normalizedPoints = normalizeDensity(points);
-  const failRegionPoints = clipDensityPoints(normalizedPoints, PASSING_THRESHOLD);
-
-  return {
-    bandwidth,
-    points: normalizedPoints,
-    failRegionPoints,
-    failProbability: integrateDensity(failRegionPoints),
-  };
+  return points;
 }
 
 function getScoreDelta(student, scenarioValues) {
@@ -249,7 +159,8 @@ function buildRecommendations(student, scenarioValues) {
 
       const shiftedScenario = deepCopy(scenarioValues);
       shiftedScenario[feature.key] = nextValue;
-      const delta = predictWithModel(shiftedScenario, data.model) - currentPrediction;
+      const delta =
+        predictWithModel(shiftedScenario, data.model) - currentPrediction;
 
       return {
         key: feature.key,
@@ -289,7 +200,7 @@ function renderHeroMetrics() {
           <strong>${metric.value}</strong>
           <span>${metric.label}</span>
         </div>
-      `
+      `,
     )
     .join("");
 }
@@ -298,14 +209,15 @@ function renderStudentList() {
   const studentList = document.getElementById("studentList");
   studentList.innerHTML = data.students
     .map((student) => {
-      const activeClass = student.id === state.selectedStudentId ? "active" : "";
+      const activeClass =
+        student.id === state.selectedStudentId ? "active" : "";
       return `
         <button class="student-card ${activeClass}" data-student-id="${student.id}">
           <div class="student-card-top">
             <div>
               <div class="student-card-name">${student.name}</div>
               <div class="student-card-score">Actual ${student.actualScore} | Predicted ${formatNumber(
-                student.predictedScore
+                student.predictedScore,
               )}</div>
             </div>
             <span class="risk-pill ${riskClass(student.riskBand)}">${student.riskBand}</span>
@@ -328,8 +240,10 @@ function renderStudentList() {
 function renderScoreSummary(student, baselineSummary, scenarioSummary) {
   const delta = scenarioSummary.mean - baselineSummary.mean;
   const deltaClass = delta >= 0 ? "delta-positive" : "delta-negative";
-  const failRiskDelta = (scenarioSummary.failProbability - baselineSummary.failProbability) * 100;
-  const failRiskDeltaClass = failRiskDelta <= 0 ? "delta-positive" : "delta-negative";
+  const failRiskDelta =
+    (scenarioSummary.failProbability - baselineSummary.failProbability) * 100;
+  const failRiskDeltaClass =
+    failRiskDelta <= 0 ? "delta-positive" : "delta-negative";
   const changedCount = getChangedFeatureKeys(student).length;
   document.getElementById("scoreSummary").innerHTML = `
     <div class="score-tile">
@@ -337,26 +251,12 @@ function renderScoreSummary(student, baselineSummary, scenarioSummary) {
       <span>Actual exam score</span>
       <div class="score-meta">
         <div>
+          <label>Baseline expected</label>
+          <b>${formatNumber(baselineSummary.mean)}</b>
+        </div>
+        <div>
           <label>Observed band</label>
           <b>${student.riskBand}</b>
-        </div>
-        <div>
-          <label>Passing threshold</label>
-          <b>${PASSING_THRESHOLD}</b>
-        </div>
-      </div>
-    </div>
-    <div class="score-tile">
-      <strong>${formatNumber(baselineSummary.mean)}</strong>
-      <span>Baseline expected score</span>
-      <div class="score-meta">
-        <div>
-          <label>90% interval</label>
-          <b>${formatNumber(baselineSummary.low)} to ${formatNumber(baselineSummary.high)}</b>
-        </div>
-        <div>
-          <label>Risk below ${PASSING_THRESHOLD}</label>
-          <b>${formatPercent(baselineSummary.failProbability)}</b>
         </div>
       </div>
     </div>
@@ -381,7 +281,7 @@ function renderScoreSummary(student, baselineSummary, scenarioSummary) {
         <div>
           <label>Fail-risk change</label>
           <span class="tag-pill ${failRiskDeltaClass}">
-            ${failRiskDelta >= 0 ? "+" : ""}${formatNumber(failRiskDelta, 0)} pts
+            ${failRiskDelta > 0 ? "+" : ""}${formatNumber(failRiskDelta, 0)} pts
           </span>
         </div>
         <div>
@@ -414,24 +314,34 @@ function renderScenarioFeedback(student) {
   `;
 }
 
-function renderPredictionChart(student, baselineSamples, scenarioSamples, baselineSummary, scenarioSummary) {
-  const baselineDensity = buildDensity(baselineSamples);
-  const scenarioDensity = buildDensity(scenarioSamples);
-  const baselinePoints = baselineDensity.points;
-  const scenarioPoints = scenarioDensity.points;
+function renderPredictionChart(
+  student,
+  baselineSamples,
+  scenarioSamples,
+  baselineSummary,
+  scenarioSummary,
+) {
+  const baselinePoints = buildDensity(baselineSamples);
+  const scenarioPoints = buildDensity(scenarioSamples);
   const maxY = Math.max(
     ...baselinePoints.map((point) => point.y),
-    ...scenarioPoints.map((point) => point.y)
+    ...scenarioPoints.map((point) => point.y),
   );
   const width = 860;
   const height = 430;
   const margin = { top: 22, right: 20, bottom: 46, left: 58 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
-  const x = d3.scaleLinear().domain([45, 100]).range([margin.left, margin.left + plotWidth]);
-  const y = d3.scaleLinear().domain([0, maxY * 1.15]).range([margin.top + plotHeight, margin.top]);
+  const x = d3
+    .scaleLinear()
+    .domain([45, 100])
+    .range([margin.left, margin.left + plotWidth]);
+  const y = d3
+    .scaleLinear()
+    .domain([0, maxY * 1.15])
+    .range([margin.top + plotHeight, margin.top]);
   const xTicks = [50, 60, 70, 80, 90, 100];
-  const yTicks = [0, maxY * 0.33, maxY * 0.66, maxY].map((value) => Number(value.toFixed(3)));
+  const yTicks = [0, maxY * 0.5, maxY];
   const baselineY = margin.top + plotHeight;
   const svg = d3.select("#predictionChart");
   svg.selectAll("*").remove();
@@ -442,12 +352,6 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
     .y((point) => y(point.y));
 
   const area = d3
-    .area()
-    .x((point) => x(point.x))
-    .y0(baselineY)
-    .y1((point) => y(point.y));
-
-  const failArea = d3
     .area()
     .x((point) => x(point.x))
     .y0(baselineY)
@@ -484,17 +388,6 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
     .attr("y2", (tick) => y(tick));
 
   svg
-    .append("g")
-    .selectAll("text")
-    .data(yTicks.filter((tick, index, ticks) => index < ticks.length - 1))
-    .join("text")
-    .attr("class", "axis-label")
-    .attr("x", margin.left - 10)
-    .attr("y", (tick) => y(tick) + 4)
-    .attr("text-anchor", "end")
-    .text((tick) => tick.toFixed(2));
-
-  svg
     .append("line")
     .attr("class", "axis-line")
     .attr("x1", margin.left)
@@ -512,46 +405,24 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
 
   svg
     .append("path")
-    .datum(baselineDensity.failRegionPoints)
-    .attr("class", "baseline-fail-fill")
-    .attr("d", failArea);
-
+    .datum(baselinePoints)
+    .attr("class", "baseline-fill")
+    .attr("d", area);
   svg
     .append("path")
-    .datum(scenarioDensity.failRegionPoints)
-    .attr("class", "scenario-fail-fill")
-    .attr("d", failArea);
-
-  svg.append("path").datum(baselinePoints).attr("class", "baseline-fill").attr("d", area);
-  svg.append("path").datum(scenarioPoints).attr("class", "scenario-fill").attr("d", area);
-  svg.append("path").datum(baselinePoints).attr("class", "baseline-line").attr("d", line);
-  svg.append("path").datum(scenarioPoints).attr("class", "scenario-line").attr("d", line);
-
-  const rugHeight = 10;
-  const baselineRugY = baselineY - 2;
-  const scenarioRugY = baselineY - rugHeight - 4;
-
+    .datum(scenarioPoints)
+    .attr("class", "scenario-fill")
+    .attr("d", area);
   svg
-    .append("g")
-    .selectAll("line")
-    .data(baselineSamples)
-    .join("line")
-    .attr("class", "baseline-rug")
-    .attr("x1", (sample) => x(sample))
-    .attr("x2", (sample) => x(sample))
-    .attr("y1", baselineRugY)
-    .attr("y2", baselineRugY - rugHeight);
-
+    .append("path")
+    .datum(baselinePoints)
+    .attr("class", "baseline-line")
+    .attr("d", line);
   svg
-    .append("g")
-    .selectAll("line")
-    .data(scenarioSamples)
-    .join("line")
-    .attr("class", "scenario-rug")
-    .attr("x1", (sample) => x(sample))
-    .attr("x2", (sample) => x(sample))
-    .attr("y1", scenarioRugY)
-    .attr("y2", scenarioRugY - rugHeight);
+    .append("path")
+    .datum(scenarioPoints)
+    .attr("class", "scenario-line")
+    .attr("d", line);
 
   [
     { xValue: baselineSummary.mean, stroke: "#d97706", dash: "6 6" },
@@ -593,7 +464,12 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
     .text("Red zone: predicted failing range below 60");
 
   const legendItems = [
-    { color: "#b91c1c", dash: "6 3", text: "Fail threshold (60)", strokeWidth: 1.5 },
+    {
+      color: "#b91c1c",
+      dash: "6 3",
+      text: "Fail threshold (60)",
+      strokeWidth: 1.5,
+    },
     {
       color: "#d97706",
       dash: "6 6",
@@ -606,7 +482,12 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
       text: `Scenario ${formatNumber(scenarioSummary.mean)}`,
       strokeWidth: 2,
     },
-    { color: "#123247", dash: null, text: `Actual ${student.actualScore}`, strokeWidth: 2 },
+    {
+      color: "#123247",
+      dash: null,
+      text: `Actual ${student.actualScore}`,
+      strokeWidth: 2,
+    },
   ];
 
   const legendX = margin.left + plotWidth - 8;
@@ -659,9 +540,12 @@ function renderPredictionChart(student, baselineSamples, scenarioSamples, baseli
   svg
     .append("text")
     .attr("class", "axis-label")
-    .attr("transform", `translate(16 ${margin.top + plotHeight / 2}) rotate(-90)`)
+    .attr(
+      "transform",
+      `translate(16 ${margin.top + plotHeight / 2}) rotate(-90)`,
+    )
     .attr("text-anchor", "middle")
-    .text("Probability density estimate");
+    .text("Density from bootstrap predictions");
 }
 
 function renderRecommendations(student, scenarioValues) {
@@ -677,14 +561,14 @@ function renderRecommendations(student, scenarioValues) {
                   ${item.delta >= 0 ? "+" : ""}${formatNumber(item.delta)}
                 </span>
               </div>
-              <p>Next reasonable move: set <strong>${item.label}</strong> to <strong>${item.nextValue}</strong></p>
+              <p>set to <strong>${item.nextValue}</strong></p>
               <div class="recommendation-actions">
                 <button class="recommendation-apply" data-recommendation-index="${index}">
-                  Apply This Lever
+                  Apply
                 </button>
               </div>
             </div>
-          `
+          `,
         )
         .join("")
     : `
@@ -696,7 +580,8 @@ function renderRecommendations(student, scenarioValues) {
 
   document.querySelectorAll("[data-recommendation-index]").forEach((button) => {
     button.addEventListener("click", () => {
-      const recommendation = recommendations[Number(button.dataset.recommendationIndex)];
+      const recommendation =
+        recommendations[Number(button.dataset.recommendationIndex)];
       const previousValue = state.scenarioValues[recommendation.key];
       state.scenarioValues[recommendation.key] = recommendation.nextValue;
       const changedCount = getChangedFeatureKeys(student).length;
@@ -706,7 +591,7 @@ function renderRecommendations(student, scenarioValues) {
         title: `Applied recommendation: ${recommendation.label}`,
         message: `${recommendation.label} moved from ${formatFeatureValue(
           recommendation.key,
-          previousValue
+          previousValue,
         )} to ${formatFeatureValue(recommendation.key, recommendation.nextValue)}. ${changedCount} ${
           changedCount === 1 ? "lever now differs" : "levers now differ"
         } from baseline.`,
@@ -715,10 +600,11 @@ function renderRecommendations(student, scenarioValues) {
     });
   });
 
-  document.getElementById("coefficientList").innerHTML = data.model.coefficientSummary
-    .slice(0, 5)
-    .map(
-      (item) => `
+  document.getElementById("coefficientList").innerHTML =
+    data.model.coefficientSummary
+      .slice(0, 5)
+      .map(
+        (item) => `
         <div class="coefficient-card">
           <div class="coefficient-card-header">
             <strong>${item.label}</strong>
@@ -728,14 +614,31 @@ function renderRecommendations(student, scenarioValues) {
           </div>
           <p>Bootstrap interval: ${item.ciLow} to ${item.ciHigh}</p>
         </div>
-      `
-    )
-    .join("");
+      `,
+      )
+      .join("");
 }
 
-function renderControls(student) {
-  const controlsGrid = document.getElementById("controlsGrid");
-  controlsGrid.innerHTML = data.features
+function renderScenarioOutputs(student) {
+  const baselineSamples = getPredictionSamples(student.values);
+  const scenarioSamples = getPredictionSamples(state.scenarioValues);
+  const baselineSummary = summarizeSamples(baselineSamples);
+  const scenarioSummary = summarizeSamples(scenarioSamples);
+
+  renderScoreSummary(student, baselineSummary, scenarioSummary);
+  renderScenarioFeedback(student);
+  renderPredictionChart(
+    student,
+    baselineSamples,
+    scenarioSamples,
+    baselineSummary,
+    scenarioSummary,
+  );
+  renderRecommendations(student, state.scenarioValues);
+}
+
+function createControlsMarkup(student) {
+  return data.features
     .filter((feature) => ACTIONABLE_MUTABILITY.has(feature.mutable))
     .map((feature) => {
       const baselineValue = student.values[feature.key];
@@ -746,8 +649,8 @@ function renderControls(student) {
         feature.mutable === "high"
           ? "Directly actionable"
           : feature.mutable === "medium"
-          ? "Counseling or resource lever"
-          : "Context lever";
+            ? "Counseling or resource lever"
+            : "Context lever";
       const header = `
         <div class="control-top">
           <div>
@@ -755,9 +658,20 @@ function renderControls(student) {
             <p>${mutabilityLabel}</p>
           </div>
           <div class="control-side">
-            <span class="tag-pill control-state ${isChanged ? "delta-positive" : ""}">
-              ${isChanged ? "Edited" : "Baseline"}
-            </span>
+            <div class="control-side-row">
+              <span class="tag-pill control-state ${isChanged ? "delta-positive" : ""}">
+                ${isChanged ? "Edited" : "Baseline"}
+              </span>
+              <button
+                class="control-info-inline"
+                type="button"
+                data-cohort-feature="${feature.key}"
+                title="cohert anaylsis"
+                aria-label="Open cohert anaylsis for ${feature.label}"
+              >
+                ⓘ
+              </button>
+            </div>
             <div class="control-value">${formatFeatureValue(feature.key, currentValue)}</div>
           </div>
         </div>
@@ -787,7 +701,7 @@ function renderControls(student) {
             ${feature.options
               .map(
                 (option) =>
-                  `<option value="${option}" ${option === currentValue ? "selected" : ""}>${option}</option>`
+                  `<option value="${option}" ${option === currentValue ? "selected" : ""}>${option}</option>`,
               )
               .join("")}
           </select>
@@ -796,14 +710,20 @@ function renderControls(student) {
       `;
     })
     .join("");
+}
 
-  controlsGrid.querySelectorAll("[data-feature]").forEach((element) => {
-    element.addEventListener("input", (event) => {
+function bindControlInputs(container, student) {
+  container.querySelectorAll("[data-feature]").forEach((element) => {
+    const isSelect = element.tagName === "SELECT";
+    const eventName = isSelect ? "change" : "input";
+    element.addEventListener(eventName, (event) => {
       const featureKey = event.target.dataset.feature;
       const feature = featureLookup[featureKey];
       const previousValue = state.scenarioValues[featureKey];
       state.scenarioValues[featureKey] =
-        feature.type === "numeric" ? Number(event.target.value) : event.target.value;
+        feature.type === "numeric"
+          ? Number(event.target.value)
+          : event.target.value;
       const changedCount = getChangedFeatureKeys(student).length;
       state.lastAction = {
         tone: "is-edited",
@@ -811,12 +731,125 @@ function renderControls(student) {
         title: `Updated scenario: ${feature.label}`,
         message: `${feature.label} changed from ${formatFeatureValue(featureKey, previousValue)} to ${formatFeatureValue(
           featureKey,
-          state.scenarioValues[featureKey]
+          state.scenarioValues[featureKey],
         )}. ${changedCount} ${changedCount === 1 ? "lever now differs" : "levers now differ"} from baseline.`,
       };
+
       renderAll(false);
     });
   });
+}
+
+function bindCohortInfoButtons(container) {
+  container.querySelectorAll("[data-cohort-feature]").forEach((button) => {
+    button.addEventListener("click", () => {
+      openCohortModal(button.dataset.cohortFeature);
+    });
+  });
+}
+
+function renderControls(student) {
+  const controlsGrid = document.getElementById("controlsGrid");
+  controlsGrid.innerHTML = createControlsMarkup(student);
+  bindControlInputs(controlsGrid, student);
+  bindCohortInfoButtons(controlsGrid);
+}
+
+function createModalFocusControlMarkup(featureKey) {
+  const feature = featureLookup[featureKey];
+  if (!feature) {
+    return `
+      <div class="modal-focus-control-empty">No variable selected.</div>
+    `;
+  }
+
+  const currentValue = state.scenarioValues[feature.key];
+  const valueText = formatFeatureValue(feature.key, currentValue);
+  const controlInput =
+    feature.type === "numeric"
+      ? `
+        <input
+          type="range"
+          min="${feature.min}"
+          max="${feature.max}"
+          step="${feature.step}"
+          value="${currentValue}"
+          data-modal-feature="${feature.key}"
+        />
+      `
+      : `
+        <select data-modal-feature="${feature.key}">
+          ${feature.options
+            .map(
+              (option) =>
+                `<option value="${option}" ${option === currentValue ? "selected" : ""}>${option}</option>`,
+            )
+            .join("")}
+        </select>
+      `;
+
+  return `
+    <div class="modal-focus-control">
+      <div class="modal-focus-control-head">
+        <strong>${feature.label}</strong>
+        <span class="control-value">${valueText}</span>
+      </div>
+      ${controlInput}
+    </div>
+  `;
+}
+
+function bindModalFocusControlInput(student) {
+  const focusControl = document.querySelector("[data-modal-feature]");
+  if (!focusControl) {
+    return;
+  }
+
+  const isSelect = focusControl.tagName === "SELECT";
+  const eventName = isSelect ? "change" : "input";
+  focusControl.addEventListener(eventName, (event) => {
+    const featureKey = event.target.dataset.modalFeature;
+    const feature = featureLookup[featureKey];
+    const previousValue = state.scenarioValues[featureKey];
+    state.scenarioValues[featureKey] =
+      feature.type === "numeric"
+        ? Number(event.target.value)
+        : event.target.value;
+    const changedCount = getChangedFeatureKeys(student).length;
+    state.lastAction = {
+      tone: "is-edited",
+      featureKey,
+      title: `Updated scenario: ${feature.label}`,
+      message: `${feature.label} changed from ${formatFeatureValue(featureKey, previousValue)} to ${formatFeatureValue(
+        featureKey,
+        state.scenarioValues[featureKey],
+      )}. ${changedCount} ${changedCount === 1 ? "lever now differs" : "levers now differ"} from baseline.`,
+    };
+
+    renderAll(false);
+  });
+}
+
+function renderModalControls(student) {
+  const modalControlsGrid = document.getElementById("modalControlsGrid");
+  if (!modalControlsGrid) {
+    return;
+  }
+
+  modalControlsGrid.innerHTML = createModalFocusControlMarkup(
+    state.selectedModalFeatureKey,
+  );
+  bindModalFocusControlInput(student);
+
+  const selectedControlLabel = document.getElementById(
+    "selectedModalControlLabel",
+  );
+  if (selectedControlLabel) {
+    const feature = featureLookup[state.selectedModalFeatureKey];
+    selectedControlLabel.textContent = feature
+      ? `Selected variable: ${feature.label}`
+      : "Selected variable";
+  }
 }
 
 function renderPresets(student) {
@@ -828,16 +861,23 @@ function renderPresets(student) {
           <button class="preset-button" data-preset-id="${preset.id}" title="${preset.description}">
             ${preset.label}
           </button>
-        `
+        `,
       )
-      .join("") + `<button class="reset-button" id="resetScenario">Reset to baseline</button>`;
+      .join("") +
+    `<button class="reset-button" id="resetScenario">Reset to baseline</button>`;
 
   presetBar.querySelectorAll("[data-preset-id]").forEach((button) => {
     button.addEventListener("click", () => {
-      const preset = data.presets.find((item) => item.id === button.dataset.presetId);
+      const preset = data.presets.find(
+        (item) => item.id === button.dataset.presetId,
+      );
       const nextValues = deepCopy(student.values);
       Object.entries(preset.changes).forEach(([featureKey, delta]) => {
-        nextValues[featureKey] = decodeShiftedValue(featureKey, nextValues[featureKey], delta);
+        nextValues[featureKey] = decodeShiftedValue(
+          featureKey,
+          nextValues[featureKey],
+          delta,
+        );
       });
       state.scenarioValues = nextValues;
       const changedCount = getChangedFeatureKeys(student).length;
@@ -857,7 +897,8 @@ function renderPresets(student) {
     state.lastAction = {
       tone: "is-neutral",
       title: "Scenario reset to baseline",
-      message: "The editable controls now match the selected student's original values again.",
+      message:
+        "The editable controls now match the selected student's original values again.",
     };
     renderAll(false);
   });
@@ -882,26 +923,41 @@ function renderContext(student) {
             <span class="tag-pill">${student.values[key]}</span>
           </div>
         </div>
-      `
+      `,
     )
     .join("");
 }
 
-function renderScatterChart(student) {
+function renderScatterChart(student, options = {}) {
+  const svgId = options.svgId || "scatterChart";
+  const tooltipId = options.tooltipId || "tooltip";
   const width = 560;
   const height = 300;
   const margin = { top: 16, right: 16, bottom: 36, left: 46 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
-  const x = d3.scaleLinear().domain([60, 100]).range([margin.left, margin.left + plotWidth]);
-  const y = d3.scaleLinear().domain([55, 101]).range([margin.top + plotHeight, margin.top]);
+  const x = d3
+    .scaleLinear()
+    .domain([60, 100])
+    .range([margin.left, margin.left + plotWidth]);
+  const y = d3
+    .scaleLinear()
+    .domain([55, 101])
+    .range([margin.top + plotHeight, margin.top]);
   const colors = {
     Low: "#b91c1c",
     Medium: "#d97706",
     High: "#0f766e",
   };
-  const svg = d3.select("#scatterChart");
+  const svg = d3.select(`#${svgId}`);
   svg.selectAll("*").remove();
+
+  const tooltip = document.getElementById(tooltipId);
+  const svgEl = document.getElementById(svgId);
+  const scenarioAttendance = Number(
+    state.scenarioValues.Attendance ?? student.values.Attendance,
+  );
+  const scenarioScore = predictWithModel(state.scenarioValues, data.model);
 
   svg
     .append("line")
@@ -975,12 +1031,38 @@ function renderScatterChart(student) {
     .attr("cy", (point) => y(point.score))
     .attr("r", 4)
     .attr("fill", (point) => colors[point.parentalInvolvement])
-    .attr("opacity", 0.38);
-
+    .attr("opacity", 0.38)
+    .style("cursor", "pointer")
+    .on("mouseenter", function (event, d) {
+      d3.select(this)
+        .transition()
+        .duration(100)
+        .attr("r", 7)
+        .attr("opacity", 0.85);
+      tooltip.innerHTML = `<span style="color:#888">Attendance</span> <strong>${d.attendance.toFixed(1)}</strong><br><span style="color:#888">Score</span> <strong>${d.score.toFixed(1)}</strong>`;
+      tooltip.style.opacity = "1";
+    })
+    .on("mousemove", function (event) {
+      const rect = svgEl.getBoundingClientRect();
+      const ex = event.clientX - rect.left;
+      const ey = event.clientY - rect.top;
+      const tw = tooltip.offsetWidth;
+      tooltip.style.left =
+        (ex + 12 + tw > rect.width ? ex - tw - 12 : ex + 12) + "px";
+      tooltip.style.top = ey - 36 + "px";
+    })
+    .on("mouseleave", function () {
+      d3.select(this)
+        .transition()
+        .duration(100)
+        .attr("r", 4)
+        .attr("opacity", 0.38);
+      tooltip.style.opacity = "0";
+    });
   svg
     .append("line")
-    .attr("x1", x(student.values.Attendance))
-    .attr("x2", x(student.values.Attendance))
+    .attr("x1", x(scenarioAttendance))
+    .attr("x2", x(scenarioAttendance))
     .attr("y1", margin.top)
     .attr("y2", margin.top + plotHeight)
     .attr("stroke", "#123247")
@@ -990,17 +1072,36 @@ function renderScatterChart(student) {
     .append("line")
     .attr("x1", margin.left)
     .attr("x2", margin.left + plotWidth)
-    .attr("y1", y(student.actualScore))
-    .attr("y2", y(student.actualScore))
+    .attr("y1", y(scenarioScore))
+    .attr("y2", y(scenarioScore))
     .attr("stroke", "#123247")
     .attr("stroke-dasharray", "5 5");
 
   svg
     .append("circle")
-    .attr("cx", x(student.values.Attendance))
-    .attr("cy", y(student.actualScore))
+    .attr("cx", x(scenarioAttendance))
+    .attr("cy", y(scenarioScore))
     .attr("r", 7)
-    .attr("fill", "#123247");
+    .attr("fill", "#123247")
+    .style("cursor", "pointer")
+    .on("mouseenter", function (event) {
+      d3.select(this).transition().duration(100).attr("r", 10);
+      tooltip.innerHTML = `<span style="color:#888">Attendance</span> <strong>${formatNumber(scenarioAttendance, 1)}</strong><br><span style="color:#888">Predicted score</span> <strong>${formatNumber(scenarioScore, 1)}</strong>`;
+      tooltip.style.opacity = "1";
+    })
+    .on("mousemove", function (event) {
+      const rect = svgEl.getBoundingClientRect();
+      const ex = event.clientX - rect.left;
+      const ey = event.clientY - rect.top;
+      const tw = tooltip.offsetWidth;
+      tooltip.style.left =
+        (ex + 12 + tw > rect.width ? ex - tw - 12 : ex + 12) + "px";
+      tooltip.style.top = ey - 36 + "px";
+    })
+    .on("mouseleave", function () {
+      d3.select(this).transition().duration(100).attr("r", 7);
+      tooltip.style.opacity = "0";
+    });
 
   svg
     .append("text")
@@ -1013,9 +1114,71 @@ function renderScatterChart(student) {
   svg
     .append("text")
     .attr("class", "axis-label")
-    .attr("transform", `translate(16 ${margin.top + plotHeight / 2}) rotate(-90)`)
+    .attr(
+      "transform",
+      `translate(16 ${margin.top + plotHeight / 2}) rotate(-90)`,
+    )
     .attr("text-anchor", "middle")
     .text("Exam score");
+}
+
+function openCohortModal(featureKey) {
+  const overlay = document.getElementById("cohortModalOverlay");
+  if (!overlay) {
+    return;
+  }
+  state.selectedModalFeatureKey =
+    featureKey ||
+    data.features.find((feature) => ACTIONABLE_MUTABILITY.has(feature.mutable))
+      ?.key ||
+    null;
+  state.isCohortModalOpen = true;
+  overlay.classList.add("open");
+  overlay.setAttribute("aria-hidden", "false");
+  renderAll(false);
+}
+
+function closeCohortModal() {
+  const overlay = document.getElementById("cohortModalOverlay");
+  if (!overlay) {
+    return;
+  }
+  state.isCohortModalOpen = false;
+  state.selectedModalFeatureKey = null;
+  overlay.classList.remove("open");
+  overlay.setAttribute("aria-hidden", "true");
+}
+
+function setupCohortModal() {
+  const doneButton = document.getElementById("cohortModalDone");
+  const overlay = document.getElementById("cohortModalOverlay");
+
+  if (!doneButton || !overlay) {
+    return;
+  }
+
+  doneButton.addEventListener("click", closeCohortModal);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      closeCohortModal();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && state.isCohortModalOpen) {
+      closeCohortModal();
+    }
+  });
+}
+
+function renderCohortModal(student) {
+  if (!state.isCohortModalOpen) {
+    return;
+  }
+  renderScatterChart(student, {
+    svgId: "modalScatterChart",
+    tooltipId: "modalTooltip",
+  });
+  renderModalControls(student);
 }
 
 function renderCorrelationChart() {
@@ -1025,11 +1188,16 @@ function renderCorrelationChart() {
   const plotWidth = width - margin.left - margin.right;
   const barHeight = 18;
   const gap = 8;
-  const maxAbs = Math.max(...data.topCorrelations.map((item) => Math.abs(item.value)));
-  const paddedMaxAbs = maxAbs * 1.16;
+
+  const minVal = Math.min(...data.topCorrelations.map((d) => d.value));
+  const maxVal = Math.max(...data.topCorrelations.map((d) => d.value));
+
+  const leftPad = 1.15;
+  const rightPad = 1.08;
+  // amke the coorelation bar fill the chart
   const x = d3
     .scaleLinear()
-    .domain([-paddedMaxAbs, paddedMaxAbs])
+    .domain([minVal * leftPad, maxVal * rightPad])
     .range([margin.left, margin.left + plotWidth]);
 
   function formatCorrelation(value) {
@@ -1051,7 +1219,10 @@ function renderCorrelationChart() {
     .selectAll("g")
     .data(data.topCorrelations)
     .join("g")
-    .attr("transform", (_, index) => `translate(0, ${margin.top + index * (barHeight + gap)})`);
+    .attr(
+      "transform",
+      (_, index) => `translate(0, ${margin.top + index * (barHeight + gap)})`,
+    );
 
   groups
     .append("text")
@@ -1065,36 +1236,26 @@ function renderCorrelationChart() {
     .append("rect")
     .attr("x", (item) => x(Math.min(0, item.value)))
     .attr("y", 0)
-    .attr("width", (item) => Math.abs(x(Math.max(0, item.value)) - x(Math.min(0, item.value))))
+    .attr("width", (item) =>
+      Math.abs(x(Math.max(0, item.value)) - x(Math.min(0, item.value))),
+    )
     .attr("height", barHeight)
     .attr("rx", 9)
     .attr("fill", (item) =>
-      item.value >= 0 ? "rgba(15, 118, 110, 0.78)" : "rgba(185, 28, 28, 0.72)"
+      item.value >= 0 ? "rgba(15, 118, 110, 0.78)" : "rgba(185, 28, 28, 0.72)",
     );
 
   groups
     .append("text")
     .attr("class", "axis-label")
-    .attr("x", (item) => {
-      const start = x(Math.min(0, item.value));
-      const end = x(Math.max(0, item.value));
-      return item.value >= 0 ? end + 12 : start - 12;
-    })
+    .attr("x", (item) => x(Math.max(0, item.value)) + 12)
+    .attr("text-anchor", "start")
     .attr("y", 13)
-    .attr("text-anchor", (item) => (item.value >= 0 ? "start" : "end"))
     .text((item) => formatCorrelation(item.value));
 }
 
 function renderAll(rebuildLists = true) {
   const student = getSelectedStudent();
-  const baselineSamples = getPredictionSamples(student.values);
-  const scenarioSamples = getPredictionSamples(state.scenarioValues);
-  const baselineSummary = summarizeSamples(baselineSamples);
-  const scenarioSummary = summarizeSamples(scenarioSamples);
-  const baselineDensity = buildDensity(baselineSamples);
-  const scenarioDensity = buildDensity(scenarioSamples);
-  baselineSummary.failProbability = baselineDensity.failProbability;
-  scenarioSummary.failProbability = scenarioDensity.failProbability;
 
   renderHeroMetrics();
   if (rebuildLists) {
@@ -1102,18 +1263,17 @@ function renderAll(rebuildLists = true) {
   } else {
     renderStudentList();
   }
-  renderScoreSummary(student, baselineSummary, scenarioSummary);
-  renderScenarioFeedback(student);
-  renderPredictionChart(student, baselineSamples, scenarioSamples, baselineSummary, scenarioSummary);
-  renderRecommendations(student, state.scenarioValues);
+  renderScenarioOutputs(student);
   renderPresets(student);
   renderControls(student);
   renderContext(student);
   renderScatterChart(student);
+  renderCohortModal(student);
   renderCorrelationChart();
 }
 
 function initialize() {
+  setupCohortModal();
   setScenarioFromStudent(getSelectedStudent());
   renderAll();
 }

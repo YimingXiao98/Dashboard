@@ -82,11 +82,15 @@ body {
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) 320px;
-  gap: 32px;
+  grid-template-columns: 1fr;
+  gap: 20px;
   padding: 28px;
   overflow: hidden;
   position: relative;
+}
+
+.hero-copy-block {
+  align-self: stretch;
 }
 
 .hero::after {
@@ -122,7 +126,7 @@ h3 {
 h1 {
   font-size: clamp(2.4rem, 4vw, 4.4rem);
   line-height: 0.92;
-  max-width: 9ch;
+  max-width: 49ch;
   color: var(--navy);
 }
 
@@ -146,8 +150,9 @@ h3 {
 
 .hero-metrics {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+  align-self: stretch;
   align-content: start;
 }
 
@@ -592,6 +597,35 @@ h3 {
   gap: 6px;
 }
 
+.control-side-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-info-inline {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(18, 50, 71, 0.2);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--navy);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease;
+}
+
+.control-info-inline:hover {
+  transform: translateY(-1px);
+  border-color: rgba(15, 118, 110, 0.4);
+  box-shadow: 0 8px 14px rgba(18, 50, 71, 0.14);
+}
+
 .control-state {
   padding-inline: 8px;
 }
@@ -628,6 +662,142 @@ h3 {
 .recommendation-card strong,
 .coefficient-card strong {
   display: block;
+}
+
+.cohort-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 50, 71, 0.42);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+  z-index: 90;
+}
+
+.cohort-modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cohort-modal {
+  width: min(80vw, 1200px);
+  height: min(80vh, 860px);
+  background: rgba(255, 251, 245, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 24px;
+  box-shadow: 0 24px 70px rgba(18, 50, 71, 0.28);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.cohort-modal-header {
+  padding: 20px 22px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.cohort-modal-body {
+  padding: 16px 22px;
+  display: grid;
+  grid-template-rows: minmax(240px, 1fr) auto;
+  gap: 14px;
+  min-height: 0;
+}
+
+.cohort-modal-chart {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+}
+
+#modalScatterChart {
+  width: min(100%, 860px);
+  height: auto;
+  max-height: min(42vh, 340px);
+  display: block;
+}
+
+.chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  background: white;
+  border: 0.5px solid #ccc;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.cohort-modal-controls-wrap {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.cohort-modal-controls-wrap h3 {
+  font-size: 0.95rem;
+}
+
+.modal-controls-grid {
+  min-height: 82px;
+}
+
+.modal-focus-control {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 14px 14px;
+}
+
+.modal-focus-control-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-focus-control-empty {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.cohort-modal-footer {
+  padding: 14px 22px 18px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cohort-modal-done {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 20px;
+  background: var(--teal);
+  color: white;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.cohort-modal-done:hover {
+  transform: translateY(-1px);
+  background: #0c635c;
+  box-shadow: 0 12px 24px rgba(15, 118, 110, 0.18);
 }
 
 input[type="range"] {
@@ -762,6 +932,8 @@ select {
 
   .hero-metrics {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-self: stretch;
+    align-content: start;
   }
 
   .rail-panel {
@@ -810,4 +982,16 @@ select {
     max-height: none;
   }
 
+  .cohort-modal-overlay {
+    padding: 12px;
+  }
+
+  .cohort-modal {
+    width: 94vw;
+    height: 90vh;
+  }
+
+  #modalScatterChart {
+    max-height: min(40vh, 300px);
+  }
 }
