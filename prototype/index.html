@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -15,9 +15,10 @@
           <p class="eyebrow">Data Visualization Prototype</p>
           <h1>Counterfactual Student Intervention Studio</h1>
           <p class="hero-copy">
-            A prototype checkpoint for the advising dashboard proposed in the report and slides:
-            choose an at-risk student, simulate an intervention, and see the predicted score
-            distribution shift in real time.
+            A prototype checkpoint for the advising dashboard proposed in the
+            report and slides: choose an at-risk student, simulate an
+            intervention, and see the predicted score distribution shift in real
+            time.
           </p>
         </div>
         <div class="hero-metrics" id="heroMetrics"></div>
@@ -40,8 +41,17 @@
                 <h2>Predicted Score Distribution</h2>
               </div>
               <div id="scoreSummary" class="score-summary"></div>
-              <div id="scenarioFeedback" class="scenario-feedback" aria-live="polite"></div>
-              <svg id="predictionChart" viewBox="0 0 860 430" role="img" aria-label="Prediction chart"></svg>
+              <div
+                id="scenarioFeedback"
+                class="scenario-feedback"
+                aria-live="polite"
+              ></div>
+              <svg
+                id="predictionChart"
+                viewBox="0 0 860 430"
+                role="img"
+                aria-label="Prediction chart"
+              ></svg>
             </section>
 
             <aside class="insight-stack">
@@ -69,7 +79,10 @@
           <h2>Editable Variables</h2>
         </div>
         <div id="presetBar" class="preset-bar"></div>
-        <div id="controlsGrid" class="controls-grid-inner controls-grid-band"></div>
+        <div
+          id="controlsGrid"
+          class="controls-grid-inner controls-grid-band"
+        ></div>
       </section>
 
       <section class="context-row">
@@ -88,7 +101,31 @@
             <p class="eyebrow">Cohort Overview</p>
             <h2>Attendance vs Exam Score</h2>
           </div>
-          <svg id="scatterChart" viewBox="0 0 560 300" role="img" aria-label="Cohort scatterplot"></svg>
+
+          <div style="position: relative">
+            <svg
+              id="scatterChart"
+              viewBox="0 0 560 300"
+              role="img"
+              aria-label="Cohort scatterplot"
+            ></svg>
+            <div
+              id="tooltip"
+              style="
+                position: absolute;
+                pointer-events: none;
+                opacity: 0;
+                background: white;
+                border: 0.5px solid #ccc;
+                border-radius: 6px;
+                padding: 6px 10px;
+                font-size: 12px;
+                transition: opacity 0.15s;
+                white-space: nowrap;
+                z-index: 10;
+              "
+            ></div>
+          </div>
         </section>
 
         <section class="panel reveal">
@@ -96,7 +133,12 @@
             <p class="eyebrow">Feature Context</p>
             <h2>Top Correlations With Exam Score</h2>
           </div>
-          <svg id="correlationChart" viewBox="0 0 560 300" role="img" aria-label="Correlation chart"></svg>
+          <svg
+            id="correlationChart"
+            viewBox="0 0 560 300"
+            role="img"
+            aria-label="Correlation chart"
+          ></svg>
         </section>
       </section>
     </main>

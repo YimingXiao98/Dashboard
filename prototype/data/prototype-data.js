@@ -34,7 +34,7 @@ window.PROTOTYPE_DATA = {
       "mutable": "high",
       "control": "slider",
       "step": 1,
-      "unit": "/wk",
+      "unit": "/ week",
       "label": "Tutoring sessions",
       "min": 0,
       "max": 8
