@@ -6,6 +6,8 @@ const state = {
   selectedStudentId: data.defaultStudentId,
   scenarioValues: {},
   lastAction: null,
+  isCohortModalOpen: false,
+  selectedModalFeatureKey: null,
 };
 
 const featureLookup = Object.fromEntries(
@@ -635,34 +637,8 @@ function renderScenarioOutputs(student) {
   renderRecommendations(student, state.scenarioValues);
 }
 
-function refreshControlCardState(controlElement, student, featureKey) {
-  const card = controlElement.closest(".control-card");
-  if (!card) {
-    return;
-  }
-
-  const baselineValue = student.values[featureKey];
-  const currentValue = state.scenarioValues[featureKey];
-  const isChanged = baselineValue !== currentValue;
-
-  card.classList.toggle("changed", isChanged);
-  card.classList.add("focused");
-
-  const statePill = card.querySelector(".control-state");
-  if (statePill) {
-    statePill.classList.toggle("delta-positive", isChanged);
-    statePill.textContent = isChanged ? "Edited" : "Baseline";
-  }
-
-  const valueEl = card.querySelector(".control-value");
-  if (valueEl) {
-    valueEl.textContent = formatFeatureValue(featureKey, currentValue);
-  }
-}
-
-function renderControls(student) {
-  const controlsGrid = document.getElementById("controlsGrid");
-  controlsGrid.innerHTML = data.features
+function createControlsMarkup(student) {
+  return data.features
     .filter((feature) => ACTIONABLE_MUTABILITY.has(feature.mutable))
     .map((feature) => {
       const baselineValue = student.values[feature.key];
@@ -682,9 +658,20 @@ function renderControls(student) {
             <p>${mutabilityLabel}</p>
           </div>
           <div class="control-side">
-            <span class="tag-pill control-state ${isChanged ? "delta-positive" : ""}">
-              ${isChanged ? "Edited" : "Baseline"}
-            </span>
+            <div class="control-side-row">
+              <span class="tag-pill control-state ${isChanged ? "delta-positive" : ""}">
+                ${isChanged ? "Edited" : "Baseline"}
+              </span>
+              <button
+                class="control-info-inline"
+                type="button"
+                data-cohort-feature="${feature.key}"
+                title="cohert anaylsis"
+                aria-label="Open cohert anaylsis for ${feature.label}"
+              >
+                ⓘ
+              </button>
+            </div>
             <div class="control-value">${formatFeatureValue(feature.key, currentValue)}</div>
           </div>
         </div>
@@ -723,8 +710,10 @@ function renderControls(student) {
       `;
     })
     .join("");
+}
 
-  controlsGrid.querySelectorAll("[data-feature]").forEach((element) => {
+function bindControlInputs(container, student) {
+  container.querySelectorAll("[data-feature]").forEach((element) => {
     const isSelect = element.tagName === "SELECT";
     const eventName = isSelect ? "change" : "input";
     element.addEventListener(eventName, (event) => {
@@ -746,15 +735,121 @@ function renderControls(student) {
         )}. ${changedCount} ${changedCount === 1 ? "lever now differs" : "levers now differ"} from baseline.`,
       };
 
-      if (feature.type === "numeric") {
-        refreshControlCardState(element, student, featureKey);
-        renderScenarioOutputs(student);
-        return;
-      }
-
       renderAll(false);
     });
   });
+}
+
+function bindCohortInfoButtons(container) {
+  container.querySelectorAll("[data-cohort-feature]").forEach((button) => {
+    button.addEventListener("click", () => {
+      openCohortModal(button.dataset.cohortFeature);
+    });
+  });
+}
+
+function renderControls(student) {
+  const controlsGrid = document.getElementById("controlsGrid");
+  controlsGrid.innerHTML = createControlsMarkup(student);
+  bindControlInputs(controlsGrid, student);
+  bindCohortInfoButtons(controlsGrid);
+}
+
+function createModalFocusControlMarkup(featureKey) {
+  const feature = featureLookup[featureKey];
+  if (!feature) {
+    return `
+      <div class="modal-focus-control-empty">No variable selected.</div>
+    `;
+  }
+
+  const currentValue = state.scenarioValues[feature.key];
+  const valueText = formatFeatureValue(feature.key, currentValue);
+  const controlInput =
+    feature.type === "numeric"
+      ? `
+        <input
+          type="range"
+          min="${feature.min}"
+          max="${feature.max}"
+          step="${feature.step}"
+          value="${currentValue}"
+          data-modal-feature="${feature.key}"
+        />
+      `
+      : `
+        <select data-modal-feature="${feature.key}">
+          ${feature.options
+            .map(
+              (option) =>
+                `<option value="${option}" ${option === currentValue ? "selected" : ""}>${option}</option>`,
+            )
+            .join("")}
+        </select>
+      `;
+
+  return `
+    <div class="modal-focus-control">
+      <div class="modal-focus-control-head">
+        <strong>${feature.label}</strong>
+        <span class="control-value">${valueText}</span>
+      </div>
+      ${controlInput}
+    </div>
+  `;
+}
+
+function bindModalFocusControlInput(student) {
+  const focusControl = document.querySelector("[data-modal-feature]");
+  if (!focusControl) {
+    return;
+  }
+
+  const isSelect = focusControl.tagName === "SELECT";
+  const eventName = isSelect ? "change" : "input";
+  focusControl.addEventListener(eventName, (event) => {
+    const featureKey = event.target.dataset.modalFeature;
+    const feature = featureLookup[featureKey];
+    const previousValue = state.scenarioValues[featureKey];
+    state.scenarioValues[featureKey] =
+      feature.type === "numeric"
+        ? Number(event.target.value)
+        : event.target.value;
+    const changedCount = getChangedFeatureKeys(student).length;
+    state.lastAction = {
+      tone: "is-edited",
+      featureKey,
+      title: `Updated scenario: ${feature.label}`,
+      message: `${feature.label} changed from ${formatFeatureValue(featureKey, previousValue)} to ${formatFeatureValue(
+        featureKey,
+        state.scenarioValues[featureKey],
+      )}. ${changedCount} ${changedCount === 1 ? "lever now differs" : "levers now differ"} from baseline.`,
+    };
+
+    renderAll(false);
+  });
+}
+
+function renderModalControls(student) {
+  const modalControlsGrid = document.getElementById("modalControlsGrid");
+  if (!modalControlsGrid) {
+    return;
+  }
+
+  modalControlsGrid.innerHTML = createModalFocusControlMarkup(
+    state.selectedModalFeatureKey,
+  );
+  bindModalFocusControlInput(student);
+
+  const selectedControlLabel = document.getElementById(
+    "selectedModalControlLabel",
+  );
+  if (selectedControlLabel) {
+    const feature = featureLookup[state.selectedModalFeatureKey];
+    selectedControlLabel.textContent = feature
+      ? `Selected variable: ${feature.label}`
+      : "Selected variable";
+  }
 }
 
 function renderPresets(student) {
@@ -833,7 +928,9 @@ function renderContext(student) {
     .join("");
 }
 
-function renderScatterChart(student) {
+function renderScatterChart(student, options = {}) {
+  const svgId = options.svgId || "scatterChart";
+  const tooltipId = options.tooltipId || "tooltip";
   const width = 560;
   const height = 300;
   const margin = { top: 16, right: 16, bottom: 36, left: 46 };
@@ -852,11 +949,15 @@ function renderScatterChart(student) {
     Medium: "#d97706",
     High: "#0f766e",
   };
-  const svg = d3.select("#scatterChart");
+  const svg = d3.select(`#${svgId}`);
   svg.selectAll("*").remove();
 
-  const tooltip = document.getElementById("tooltip");
-  const svgEl = document.getElementById("scatterChart");
+  const tooltip = document.getElementById(tooltipId);
+  const svgEl = document.getElementById(svgId);
+  const scenarioAttendance = Number(
+    state.scenarioValues.Attendance ?? student.values.Attendance,
+  );
+  const scenarioScore = predictWithModel(state.scenarioValues, data.model);
 
   svg
     .append("line")
@@ -960,8 +1061,8 @@ function renderScatterChart(student) {
     });
   svg
     .append("line")
-    .attr("x1", x(student.values.Attendance))
-    .attr("x2", x(student.values.Attendance))
+    .attr("x1", x(scenarioAttendance))
+    .attr("x2", x(scenarioAttendance))
     .attr("y1", margin.top)
     .attr("y2", margin.top + plotHeight)
     .attr("stroke", "#123247")
@@ -971,21 +1072,21 @@ function renderScatterChart(student) {
     .append("line")
     .attr("x1", margin.left)
     .attr("x2", margin.left + plotWidth)
-    .attr("y1", y(student.actualScore))
-    .attr("y2", y(student.actualScore))
+    .attr("y1", y(scenarioScore))
+    .attr("y2", y(scenarioScore))
     .attr("stroke", "#123247")
     .attr("stroke-dasharray", "5 5");
 
   svg
     .append("circle")
-    .attr("cx", x(student.values.Attendance))
-    .attr("cy", y(student.actualScore))
+    .attr("cx", x(scenarioAttendance))
+    .attr("cy", y(scenarioScore))
     .attr("r", 7)
     .attr("fill", "#123247")
     .style("cursor", "pointer")
     .on("mouseenter", function (event) {
       d3.select(this).transition().duration(100).attr("r", 10);
-      tooltip.innerHTML = `<span style="color:#888">Attendance</span> <strong>${student.values.Attendance}</strong><br><span style="color:#888">Score</span> <strong>${student.actualScore}</strong>`;
+      tooltip.innerHTML = `<span style="color:#888">Attendance</span> <strong>${formatNumber(scenarioAttendance, 1)}</strong><br><span style="color:#888">Predicted score</span> <strong>${formatNumber(scenarioScore, 1)}</strong>`;
       tooltip.style.opacity = "1";
     })
     .on("mousemove", function (event) {
@@ -1019,6 +1120,65 @@ function renderScatterChart(student) {
     )
     .attr("text-anchor", "middle")
     .text("Exam score");
+}
+
+function openCohortModal(featureKey) {
+  const overlay = document.getElementById("cohortModalOverlay");
+  if (!overlay) {
+    return;
+  }
+  state.selectedModalFeatureKey =
+    featureKey ||
+    data.features.find((feature) => ACTIONABLE_MUTABILITY.has(feature.mutable))
+      ?.key ||
+    null;
+  state.isCohortModalOpen = true;
+  overlay.classList.add("open");
+  overlay.setAttribute("aria-hidden", "false");
+  renderAll(false);
+}
+
+function closeCohortModal() {
+  const overlay = document.getElementById("cohortModalOverlay");
+  if (!overlay) {
+    return;
+  }
+  state.isCohortModalOpen = false;
+  state.selectedModalFeatureKey = null;
+  overlay.classList.remove("open");
+  overlay.setAttribute("aria-hidden", "true");
+}
+
+function setupCohortModal() {
+  const doneButton = document.getElementById("cohortModalDone");
+  const overlay = document.getElementById("cohortModalOverlay");
+
+  if (!doneButton || !overlay) {
+    return;
+  }
+
+  doneButton.addEventListener("click", closeCohortModal);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      closeCohortModal();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && state.isCohortModalOpen) {
+      closeCohortModal();
+    }
+  });
+}
+
+function renderCohortModal(student) {
+  if (!state.isCohortModalOpen) {
+    return;
+  }
+  renderScatterChart(student, {
+    svgId: "modalScatterChart",
+    tooltipId: "modalTooltip",
+  });
+  renderModalControls(student);
 }
 
 function renderCorrelationChart() {
@@ -1108,10 +1268,12 @@ function renderAll(rebuildLists = true) {
   renderControls(student);
   renderContext(student);
   renderScatterChart(student);
+  renderCohortModal(student);
   renderCorrelationChart();
 }
 
 function initialize() {
+  setupCohortModal();
   setScenarioFromStudent(getSelectedStudent());
   renderAll();
 }

@@ -14,12 +14,12 @@
         <div class="hero-copy-block">
           <p class="eyebrow">Data Visualization Prototype</p>
           <h1>Counterfactual Student Intervention Studio</h1>
-          <p class="hero-copy">
+          <!-- <p class="hero-copy">
             A prototype checkpoint for the advising dashboard proposed in the
             report and slides: choose an at-risk student, simulate an
             intervention, and see the predicted score distribution shift in real
             time.
-          </p>
+          </p> -->
         </div>
         <div class="hero-metrics" id="heroMetrics"></div>
       </header>
@@ -84,6 +84,50 @@
           class="controls-grid-inner controls-grid-band"
         ></div>
       </section>
+
+      <div
+        id="cohortModalOverlay"
+        class="cohort-modal-overlay"
+        aria-hidden="true"
+      >
+        <section
+          class="cohort-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cohortModalTitle"
+        >
+          <div class="cohort-modal-header">
+            <div>
+              <p class="eyebrow">Cohert Anaylsis</p>
+              <h2 id="cohortModalTitle">Attendance vs Exam Score</h2>
+            </div>
+          </div>
+          <div class="cohort-modal-body">
+            <div class="cohort-modal-chart">
+              <svg
+                id="modalScatterChart"
+                viewBox="0 0 560 300"
+                role="img"
+                aria-label="Cohort scatterplot modal"
+              ></svg>
+              <div id="modalTooltip" class="chart-tooltip"></div>
+            </div>
+            <div class="cohort-modal-controls-wrap">
+              <h3 id="selectedModalControlLabel">Selected variable</h3>
+              <div id="modalControlsGrid" class="modal-controls-grid"></div>
+            </div>
+          </div>
+          <div class="cohort-modal-footer">
+            <button
+              id="cohortModalDone"
+              class="cohort-modal-done"
+              type="button"
+            >
+              Done
+            </button>
+          </div>
+        </section>
+      </div>
 
       <section class="context-row">
         <section class="panel reveal">
