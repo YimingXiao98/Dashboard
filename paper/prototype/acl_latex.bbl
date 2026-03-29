@@ -1,0 +1,87 @@
+\begin{thebibliography}{12}
+\providecommand{\natexlab}[1]{#1}
+
+\bibitem[{Afrin et~al.(2023)Afrin, Hamilton, and Thevathayan}]{afrin2023}
+Farzana Afrin, Margaret Hamilton, and Charles Thevathayan. 2023.
+\newblock \href {https://doi.org/10.1007/978-3-031-36021-3_44} {Exploring
+  counterfactual explanations for predicting student success}.
+\newblock In \emph{Proceedings of the International Conference on Computational
+  Science (ICCS 2023)}, volume 14074 of \emph{Lecture Notes in Computer
+  Science}, Cham. Springer.
+
+\bibitem[{Asselman et~al.(2023)Asselman, Khaldi, and Aammou}]{asselman2023}
+Adnan Asselman, Mohamed Khaldi, and Souad Aammou. 2023.
+\newblock \href {https://doi.org/10.1080/10494820.2021.1928235} {Enhancing the
+  prediction of student performance based on the machine learning {XGBoost}
+  algorithm}.
+\newblock \emph{Interactive Learning Environments}, 31(6):3360--3379.
+
+\bibitem[{Bostock et~al.(2011)Bostock, Ogievetsky, and Heer}]{bostock2011}
+Michael Bostock, Vadim Ogievetsky, and Jeffrey Heer. 2011.
+\newblock \href {https://doi.org/10.1109/TVCG.2011.185} {{D}$^3$: Data-driven
+  documents}.
+\newblock \emph{IEEE Transactions on Visualization and Computer Graphics},
+  17(12):2301--2309.
+
+\bibitem[{Bu{\~{n}}ay-Guis{\~{n}}{\'{a}}n et~al.(2026)}]{bunay2026}
+Diego Bu{\~{n}}ay-Guis{\~{n}}{\'{a}}n and 1 others. 2026.
+\newblock \href {https://doi.org/10.1002/widm.70060} {Counterfactual
+  explanations in education: A systematic review}.
+\newblock \emph{WIREs Data Mining and Knowledge Discovery}.
+
+\bibitem[{Khalaf et~al.(2025)}]{khalaf2025}
+Anoud Khalaf and 1 others. 2025.
+\newblock \href {https://doi.org/10.1038/s41598-025-12353-4} {Machine
+  learning-based academic performance prediction with explainability for
+  enhanced decision-making in educational institutions}.
+\newblock \emph{Scientific Reports}.
+
+\bibitem[{Mello et~al.(2022)Mello, Viterbo, and Santoro}]{sdavis2022}
+Fabio Mello, Jose Viterbo, and Fl{\'{a}}via Santoro. 2022.
+\newblock \href {https://doi.org/10.3390/app12125785} {{SDA-Vis}: A
+  visualization system for student dropout analysis based on counterfactual
+  exploration}.
+\newblock \emph{Applied Sciences}, 12(12):5785.
+
+\bibitem[{Papamitsiou and Economides(2014)}]{papamitsiou2014learning}
+Zacharoula Papamitsiou and Anastasios~A. Economides. 2014.
+\newblock Learning analytics and educational data mining in practice: A
+  systematic literature review of empirical evidence.
+\newblock \emph{Journal of Educational Technology \& Society}, 17(4):49--64.
+
+\bibitem[{Romero and Ventura(2020)}]{romero2020educational}
+Crist{\'{o}}bal Romero and Sebasti{\'{a}}n Ventura. 2020.
+\newblock \href {https://doi.org/10.1002/widm.1355} {Educational data mining
+  and learning analytics: An updated survey}.
+\newblock \emph{WIREs Data Mining and Knowledge Discovery}, 10(3):e1355.
+
+\bibitem[{Siemens and Baker(2012)}]{siemens2013learning}
+George Siemens and Ryan S.~J.~D. Baker. 2012.
+\newblock \href {https://doi.org/10.1145/2330601.2330661} {Learning analytics
+  and educational data mining: Towards communication and collaboration}.
+\newblock In \emph{Proceedings of the 2nd International Conference on Learning
+  Analytics and Knowledge (LAK '12)}, pages 252--254. ACM.
+
+\bibitem[{Susnjak et~al.(2022)}]{susnjak2022}
+Teo Susnjak and 1 others. 2022.
+\newblock Utilizing panels with predictive and counterfactual learning
+  analytics to estimate students' academic success.
+\newblock In \emph{Proceedings of the International Conference on Educational
+  Data Mining (EDM 2022)}.
+
+\bibitem[{Tsiakmaki and Ragos(2021)}]{tsiakmaki2021}
+Maria Tsiakmaki and Odysseas Ragos. 2021.
+\newblock \href {https://doi.org/10.1109/BigData52589.2021.9668661} {A case
+  study of interpretable counterfactual explanations for the task of predicting
+  student academic performance}.
+\newblock In \emph{Proceedings of the IEEE International Conference on Big
+  Data}, pages 1--8. IEEE.
+
+\bibitem[{Zhang et~al.(2023)Zhang, Dong, Lv et~al.}]{zhang2023}
+Huimin Zhang, Jianfeng Dong, Chenglu Lv, and 1 others. 2023.
+\newblock \href {https://doi.org/10.1007/s12650-022-00899-8} {Visual analytics
+  of potential dropout behavior patterns in online learning based on
+  counterfactual explanation}.
+\newblock \emph{Journal of Visualization}, 26:723--741.
+
+\end{thebibliography}

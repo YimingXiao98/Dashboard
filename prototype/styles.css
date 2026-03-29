@@ -266,6 +266,11 @@ h3 {
   padding-right: 6px;
 }
 
+.student-list {
+  padding-top: 4px;
+  padding-bottom: 6px;
+}
+
 .student-card {
   width: 100%;
   border: 1px solid var(--line);
@@ -826,6 +831,11 @@ select {
   font-weight: 700;
 }
 
+.chart-subtitle {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
 .axis-line,
 .grid-line {
   stroke: rgba(31, 41, 51, 0.12);
@@ -850,6 +860,28 @@ select {
 
 .scenario-fill {
   fill: rgba(15, 118, 110, 0.16);
+}
+
+.baseline-fail-fill {
+  fill: rgba(217, 119, 6, 0.34);
+}
+
+.scenario-fail-fill {
+  fill: rgba(15, 118, 110, 0.34);
+}
+
+.baseline-rug,
+.scenario-rug {
+  stroke-width: 1;
+  opacity: 0.22;
+}
+
+.baseline-rug {
+  stroke: var(--amber);
+}
+
+.scenario-rug {
+  stroke: var(--teal);
 }
 
 .reveal {
