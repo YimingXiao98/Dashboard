@@ -1,6 +1,7 @@
 const data = window.PROTOTYPE_DATA;
 const PASSING_THRESHOLD = 60;
 const ACTIONABLE_MUTABILITY = new Set(["high", "medium"]);
+const MAX_SCATTER_POINTS = 900;
 
 const state = {
   selectedStudentId: data.defaultStudentId,
@@ -8,6 +9,7 @@ const state = {
   lastAction: null,
   isCohortModalOpen: false,
   selectedModalFeatureKey: null,
+  cohortRows: null,
 };
 
 const featureLookup = Object.fromEntries(
@@ -35,6 +37,63 @@ function riskClass(riskBand) {
 
 function deepCopy(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function parseCsvText(csvText) {
+  const lines = csvText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  if (lines.length < 2) {
+    return [];
+  }
+
+  const headers = lines[0].split(",").map((header) => header.trim());
+  const numericKeys = new Set([
+    "Hours_Studied",
+    "Attendance",
+    "Sleep_Hours",
+    "Previous_Scores",
+    "Tutoring_Sessions",
+    "Physical_Activity",
+    "Exam_Score",
+  ]);
+
+  return lines.slice(1).map((line) => {
+    const values = line.split(",");
+    const row = {};
+
+    headers.forEach((header, index) => {
+      const raw = (values[index] ?? "").trim();
+      if (numericKeys.has(header)) {
+        row[header] = raw === "" ? null : Number(raw);
+      } else {
+        row[header] = raw;
+      }
+    });
+
+    return row;
+  });
+}
+
+async function loadCohortRowsFromCsv() {
+  try {
+    const response = await fetch("../data/raw/StudentPerformanceFactors.csv");
+    if (!response.ok) {
+      return;
+    }
+    const csvText = await response.text();
+    const parsedRows = parseCsvText(csvText);
+    if (!parsedRows.length) {
+      return;
+    }
+
+    state.cohortRows = parsedRows;
+    renderAll(false);
+  } catch {
+    // Keep graceful fallback to bundled prototype data when CSV is unavailable.
+  }
 }
 
 function getSelectedStudent() {
@@ -666,7 +725,7 @@ function createControlsMarkup(student) {
                 class="control-info-inline"
                 type="button"
                 data-cohort-feature="${feature.key}"
-                title="cohert anaylsis"
+                title="Cohert Anaylsis"
                 aria-label="Open cohert anaylsis for ${feature.label}"
               >
                 ⓘ
@@ -735,9 +794,65 @@ function bindControlInputs(container, student) {
         )}. ${changedCount} ${changedCount === 1 ? "lever now differs" : "levers now differ"} from baseline.`,
       };
 
+      if (feature.type === "numeric") {
+        refreshControlCardState(element, student, featureKey);
+        if (state.isCohortModalOpen) {
+          renderModalControls(student);
+        }
+        renderScenarioOutputs(student);
+        renderScatterChart(student);
+        renderCohortModal(student, { skipControls: true });
+        return;
+      }
+
       renderAll(false);
     });
   });
+}
+
+function refreshControlCardState(controlElement, student, featureKey) {
+  const card = controlElement.closest(".control-card");
+  if (!card) {
+    return;
+  }
+
+  const baselineValue = student.values[featureKey];
+  const currentValue = state.scenarioValues[featureKey];
+  const isChanged = baselineValue !== currentValue;
+  const statePill = card.querySelector(".control-state");
+  const valueEl = card.querySelector(".control-value");
+
+  card.classList.toggle("changed", isChanged);
+  card.classList.add("focused");
+
+  if (statePill) {
+    statePill.classList.toggle("delta-positive", isChanged);
+    statePill.textContent = isChanged ? "Edited" : "Baseline";
+  }
+
+  if (valueEl) {
+    valueEl.textContent = formatFeatureValue(featureKey, currentValue);
+  }
+}
+
+function syncMainControlFromState(featureKey, student) {
+  const controlsGrid = document.getElementById("controlsGrid");
+  if (!controlsGrid) {
+    return;
+  }
+
+  const controlElement = controlsGrid.querySelector(
+    `[data-feature="${featureKey}"]`,
+  );
+  if (!controlElement) {
+    return;
+  }
+
+  const feature = featureLookup[featureKey];
+  const nextValue = state.scenarioValues[featureKey];
+  controlElement.value =
+    feature.type === "numeric" ? Number(nextValue) : String(nextValue);
+  refreshControlCardState(controlElement, student, featureKey);
 }
 
 function bindCohortInfoButtons(container) {
@@ -800,7 +915,12 @@ function createModalFocusControlMarkup(featureKey) {
 }
 
 function bindModalFocusControlInput(student) {
-  const focusControl = document.querySelector("[data-modal-feature]");
+  const modalControlsGrid = document.getElementById("modalControlsGrid");
+  if (!modalControlsGrid) {
+    return;
+  }
+
+  const focusControl = modalControlsGrid.querySelector("[data-modal-feature]");
   if (!focusControl) {
     return;
   }
@@ -825,6 +945,23 @@ function bindModalFocusControlInput(student) {
         state.scenarioValues[featureKey],
       )}. ${changedCount} ${changedCount === 1 ? "lever now differs" : "levers now differ"} from baseline.`,
     };
+
+    syncMainControlFromState(featureKey, student);
+
+    if (feature.type === "numeric") {
+      const valueEl = modalControlsGrid.querySelector(".control-value");
+      if (valueEl) {
+        valueEl.textContent = formatFeatureValue(
+          featureKey,
+          state.scenarioValues[featureKey],
+        );
+      }
+
+      renderScenarioOutputs(student);
+      renderScatterChart(student);
+      renderCohortModal(student, { skipControls: true });
+      return;
+    }
 
     renderAll(false);
   });
@@ -928,18 +1065,117 @@ function renderContext(student) {
     .join("");
 }
 
+function buildCohortScatterPoints(featureKey) {
+  if (Array.isArray(state.cohortRows) && state.cohortRows.length) {
+    return state.cohortRows
+      .map((row, index) => {
+        const xValue = row[featureKey];
+        const yValue = row.Exam_Score;
+        if (xValue === undefined || xValue === null || yValue == null) {
+          return null;
+        }
+        return {
+          id: `row-${index}`,
+          xValue,
+          yValue: Number(yValue),
+          parentalInvolvement: row.Parental_Involvement,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  if (
+    featureKey === "Attendance" &&
+    Array.isArray(data.cohortScatter) &&
+    data.cohortScatter.length
+  ) {
+    return data.cohortScatter.map((point, index) => ({
+      id: `cohort-${index}`,
+      xValue: Number(point.attendance),
+      yValue: Number(point.score),
+      parentalInvolvement: point.parentalInvolvement,
+    }));
+  }
+
+  return data.students
+    .map((studentItem) => {
+      const xValue = studentItem.values[featureKey];
+      if (xValue === undefined || xValue === null) {
+        return null;
+      }
+      return {
+        id: studentItem.id,
+        xValue,
+        yValue: studentItem.actualScore,
+        parentalInvolvement: studentItem.values.Parental_Involvement,
+      };
+    })
+    .filter(Boolean);
+}
+
+function sampleScatterPoints(points, maxPoints = MAX_SCATTER_POINTS) {
+  if (!Array.isArray(points) || points.length <= maxPoints) {
+    return points;
+  }
+
+  const sampled = [];
+  const step = points.length / maxPoints;
+  for (let i = 0; i < maxPoints; i += 1) {
+    sampled.push(points[Math.floor(i * step)]);
+  }
+  return sampled;
+}
+
 function renderScatterChart(student, options = {}) {
   const svgId = options.svgId || "scatterChart";
   const tooltipId = options.tooltipId || "tooltip";
-  const width = 560;
-  const height = 300;
-  const margin = { top: 16, right: 16, bottom: 36, left: 46 };
+  const featureKey = options.featureKey || "Attendance";
+  const feature = featureLookup[featureKey] || featureLookup.Attendance;
+  const svgEl = document.getElementById(svgId);
+  const tooltip = document.getElementById(tooltipId);
+  if (!svgEl || !tooltip) {
+    return;
+  }
+
+  const containerEl =
+    document.getElementById(options.containerId) || svgEl.parentElement;
+  const containerRect = containerEl?.getBoundingClientRect();
+  const width = Math.max(
+    420,
+    Math.floor(containerRect?.width || svgEl.clientWidth || 560),
+  );
+  const height = Math.max(
+    260,
+    Math.floor(containerRect?.height || svgEl.clientHeight || 300),
+  );
+  const margin = { top: 16, right: 16, bottom: 44, left: 52 };
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
-  const x = d3
-    .scaleLinear()
-    .domain([60, 100])
-    .range([margin.left, margin.left + plotWidth]);
+
+  const points = buildCohortScatterPoints(feature.key);
+  const plottedPoints = sampleScatterPoints(points);
+  const isNumeric = feature.type === "numeric";
+  const x = isNumeric
+    ? d3.scaleLinear().range([margin.left, margin.left + plotWidth])
+    : d3
+        .scalePoint()
+        .range([margin.left, margin.left + plotWidth])
+        .padding(0.5);
+
+  if (isNumeric) {
+    const values = points.map((point) => Number(point.xValue));
+    const featureMax = Number.isFinite(feature.max) ? Number(feature.max) : 0;
+    const featureMin = Number.isFinite(feature.min) ? Number(feature.min) : 0;
+    const dataMax = d3.max(values) ?? 0;
+    const dataMin = d3.min(values) ?? 0;
+    const domainMax = Math.max(1, featureMax, dataMax);
+    const domainMin = Math.max(0, Math.min(featureMin, dataMin));
+    const pad = Math.max(1, domainMax * 0.03);
+    x.domain([domainMin, domainMax + pad]);
+  } else {
+    x.domain(feature.options || []);
+  }
+
   const y = d3
     .scaleLinear()
     .domain([55, 101])
@@ -949,14 +1185,12 @@ function renderScatterChart(student, options = {}) {
     Medium: "#d97706",
     High: "#0f766e",
   };
-  const svg = d3.select(`#${svgId}`);
+  const svg = d3.select(svgEl);
+  svg.attr("viewBox", `0 0 ${width} ${height}`);
   svg.selectAll("*").remove();
 
-  const tooltip = document.getElementById(tooltipId);
-  const svgEl = document.getElementById(svgId);
-  const scenarioAttendance = Number(
-    state.scenarioValues.Attendance ?? student.values.Attendance,
-  );
+  const scenarioXValue =
+    state.scenarioValues[feature.key] ?? student.values[feature.key];
   const scenarioScore = predictWithModel(state.scenarioValues, data.model);
 
   svg
@@ -975,7 +1209,9 @@ function renderScatterChart(student, options = {}) {
     .attr("y1", margin.top)
     .attr("y2", margin.top + plotHeight);
 
-  const xTicks = [60, 70, 80, 90, 100];
+  const xTicks = isNumeric
+    ? x.ticks(Math.max(4, Math.min(8, Math.floor(plotWidth / 110))))
+    : feature.options || [];
   const yTicks = [55, 65, 75, 85, 95];
 
   svg
@@ -996,7 +1232,7 @@ function renderScatterChart(student, options = {}) {
     .join("text")
     .attr("class", "axis-label")
     .attr("x", (tick) => x(tick))
-    .attr("y", height - 12)
+    .attr("y", height - 10)
     .attr("text-anchor", "middle")
     .text((tick) => tick);
 
@@ -1025,12 +1261,21 @@ function renderScatterChart(student, options = {}) {
   svg
     .append("g")
     .selectAll("circle")
-    .data(data.cohortScatter)
+    .data(plottedPoints)
     .join("circle")
-    .attr("cx", (point) => x(point.attendance))
-    .attr("cy", (point) => y(point.score))
+    .attr("cx", (point, index) => {
+      if (isNumeric) {
+        return x(Number(point.xValue));
+      }
+      const base = x(point.xValue);
+      return base + ((index % 5) - 2) * 2;
+    })
+    .attr("cy", (point) => y(point.yValue))
     .attr("r", 4)
-    .attr("fill", (point) => colors[point.parentalInvolvement])
+    .attr(
+      "fill",
+      (point) => colors[point.parentalInvolvement || "Medium"] || colors.Medium,
+    )
     .attr("opacity", 0.38)
     .style("cursor", "pointer")
     .on("mouseenter", function (event, d) {
@@ -1039,7 +1284,7 @@ function renderScatterChart(student, options = {}) {
         .duration(100)
         .attr("r", 7)
         .attr("opacity", 0.85);
-      tooltip.innerHTML = `<span style="color:#888">Attendance</span> <strong>${d.attendance.toFixed(1)}</strong><br><span style="color:#888">Score</span> <strong>${d.score.toFixed(1)}</strong>`;
+      tooltip.innerHTML = `<span style="color:#888">${feature.label}</span> <strong>${formatFeatureValue(feature.key, d.xValue)}</strong><br><span style="color:#888">Score</span> <strong>${formatNumber(d.yValue, 1)}</strong>`;
       tooltip.style.opacity = "1";
     })
     .on("mousemove", function (event) {
@@ -1061,8 +1306,8 @@ function renderScatterChart(student, options = {}) {
     });
   svg
     .append("line")
-    .attr("x1", x(scenarioAttendance))
-    .attr("x2", x(scenarioAttendance))
+    .attr("x1", isNumeric ? x(Number(scenarioXValue)) : x(scenarioXValue))
+    .attr("x2", isNumeric ? x(Number(scenarioXValue)) : x(scenarioXValue))
     .attr("y1", margin.top)
     .attr("y2", margin.top + plotHeight)
     .attr("stroke", "#123247")
@@ -1079,14 +1324,14 @@ function renderScatterChart(student, options = {}) {
 
   svg
     .append("circle")
-    .attr("cx", x(scenarioAttendance))
+    .attr("cx", isNumeric ? x(Number(scenarioXValue)) : x(scenarioXValue))
     .attr("cy", y(scenarioScore))
     .attr("r", 7)
     .attr("fill", "#123247")
     .style("cursor", "pointer")
     .on("mouseenter", function (event) {
       d3.select(this).transition().duration(100).attr("r", 10);
-      tooltip.innerHTML = `<span style="color:#888">Attendance</span> <strong>${formatNumber(scenarioAttendance, 1)}</strong><br><span style="color:#888">Predicted score</span> <strong>${formatNumber(scenarioScore, 1)}</strong>`;
+      tooltip.innerHTML = `<span style="color:#888">${feature.label}</span> <strong>${formatFeatureValue(feature.key, scenarioXValue)}</strong><br><span style="color:#888">Predicted score</span> <strong>${formatNumber(scenarioScore, 1)}</strong>`;
       tooltip.style.opacity = "1";
     })
     .on("mousemove", function (event) {
@@ -1109,7 +1354,7 @@ function renderScatterChart(student, options = {}) {
     .attr("x", margin.left + plotWidth / 2)
     .attr("y", height - 2)
     .attr("text-anchor", "middle")
-    .text("Attendance");
+    .text(feature.label);
 
   svg
     .append("text")
@@ -1147,6 +1392,7 @@ function closeCohortModal() {
   state.selectedModalFeatureKey = null;
   overlay.classList.remove("open");
   overlay.setAttribute("aria-hidden", "true");
+  renderAll(false);
 }
 
 function setupCohortModal() {
@@ -1170,15 +1416,27 @@ function setupCohortModal() {
   });
 }
 
-function renderCohortModal(student) {
+function renderCohortModal(student, options = {}) {
   if (!state.isCohortModalOpen) {
     return;
   }
+
+  const modalFeature = featureLookup[state.selectedModalFeatureKey];
+  const modalTitle = document.getElementById("cohortModalTitle");
+  if (modalTitle && modalFeature) {
+    modalTitle.textContent = `${modalFeature.label} vs Exam Score`;
+  }
+
   renderScatterChart(student, {
     svgId: "modalScatterChart",
     tooltipId: "modalTooltip",
+    containerId: "cohortModalChart",
+    featureKey: state.selectedModalFeatureKey,
   });
-  renderModalControls(student);
+
+  if (!options.skipControls) {
+    renderModalControls(student);
+  }
 }
 
 function renderCorrelationChart() {
@@ -1267,15 +1525,19 @@ function renderAll(rebuildLists = true) {
   renderPresets(student);
   renderControls(student);
   renderContext(student);
-  renderScatterChart(student);
+  renderScatterChart(student, { featureKey: "Attendance" });
   renderCohortModal(student);
   renderCorrelationChart();
 }
 
 function initialize() {
   setupCohortModal();
+  window.addEventListener("resize", () => {
+    renderAll(false);
+  });
   setScenarioFromStudent(getSelectedStudent());
   renderAll();
+  loadCohortRowsFromCsv();
 }
 
 initialize();
