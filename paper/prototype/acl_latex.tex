@@ -27,7 +27,7 @@
   Texas A\&M University \\
   UIN:137001082 \\
   \texttt{yihsin.chiang@tamu.edu} \\}
-
+\hyphenpenalty=10000
 \begin{document}
 {\makeatletter\acl@finalcopytrue
   \maketitle
@@ -91,7 +91,7 @@ To ground the system design in the needs of real educators, we conducted a struc
 
 Based on the survey results, the literature review (Section~\ref{sec:related}), and the actionability taxonomy of the dataset features, we derive four design requirements:
 
-\begin{description}[leftmargin=1.5cm, style=nextline]
+\begin{description}[leftmargin=1cm, style=nextline]
   \item[\textbf{D1}] \textbf{Quickly identify at-risk students and prioritize attention.} Educators' first instinct is to check grades and attendance (Q1). The system must surface struggling students immediately without requiring manual data lookups.
 
   \item[\textbf{D2}] \textbf{Compare baseline prediction against intervention scenarios in real time.} The most valued output is a baseline-vs.-intervention comparison (Q3, 60\%), and the preferred visualization is a before/after prediction chart (Q4, 80\%). The system must let users see the predicted shift as they adjust variables.
@@ -191,7 +191,7 @@ Table~\ref{tab:feature-mapping} provides an overview of the five main features a
 \centering
 \small
 \renewcommand{\arraystretch}{1.3}
-\begin{tabular}{c p{2.8cm} p{7cm} c c c c}
+\begin{tabular}{c p{4cm} p{6cm} c c c c}
 \toprule
 \textbf{ID} & \textbf{Feature} & \textbf{Description} & \textbf{D1} & \textbf{D2} & \textbf{D3} & \textbf{D4} \\
 \midrule
@@ -202,7 +202,7 @@ F4 & Editable Intervention Controls & Sliders for numeric variables, dropdowns f
 F5 & Context \& Correlation Views & Immutable factors grid, cohort scatter plot, and top correlations bar chart. & & & & $\checkmark$ \\
 \bottomrule
 \end{tabular}
-\caption{Feature-to-requirement mapping. Each feature (F1--F5) addresses one or more design requirements (D1--D4).}
+\caption{Feature-to-Requirement mapping. Each feature (F1--F5) addresses one or more design requirements (D1--D4).}
 \label{tab:feature-mapping}
 \end{table*}
 
