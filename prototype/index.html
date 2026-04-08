@@ -28,7 +28,18 @@
         <aside class="panel rail-panel reveal" id="studentPanel">
           <div class="panel-head">
             <p class="eyebrow">Select Student</p>
-            <h2>Focus Students</h2>
+            <div class="panel-head-inline">
+              <h2>Focus Students</h2>
+              <button
+                id="studentContextInfo"
+                class="control-info-inline"
+                type="button"
+                title="Immutable factors"
+                aria-label="Open immutable and structural factors"
+              >
+                ⓘ
+              </button>
+            </div>
           </div>
           <div id="studentList" class="student-list"></div>
         </aside>
@@ -129,49 +140,7 @@
         </section>
       </div>
 
-      <section class="context-row">
-        <section class="panel reveal">
-          <div class="panel-head">
-            <p class="eyebrow">Student Context</p>
-            <h2>Immutable And Structural Factors</h2>
-          </div>
-          <div id="contextGrid" class="context-grid"></div>
-        </section>
-      </section>
-
       <section class="insight-grid">
-        <section class="panel reveal">
-          <div class="panel-head">
-            <p class="eyebrow">Cohort Overview</p>
-            <h2>Attendance vs Exam Score</h2>
-          </div>
-
-          <div style="position: relative">
-            <svg
-              id="scatterChart"
-              viewBox="0 0 560 300"
-              role="img"
-              aria-label="Cohort scatterplot"
-            ></svg>
-            <div
-              id="tooltip"
-              style="
-                position: absolute;
-                pointer-events: none;
-                opacity: 0;
-                background: white;
-                border: 0.5px solid #ccc;
-                border-radius: 6px;
-                padding: 6px 10px;
-                font-size: 12px;
-                transition: opacity 0.15s;
-                white-space: nowrap;
-                z-index: 10;
-              "
-            ></div>
-          </div>
-        </section>
-
         <section class="panel reveal">
           <div class="panel-head">
             <p class="eyebrow">Feature Context</p>
@@ -185,6 +154,38 @@
           ></svg>
         </section>
       </section>
+
+      <div
+        id="contextModalOverlay"
+        class="cohort-modal-overlay"
+        aria-hidden="true"
+      >
+        <section
+          class="cohort-modal context-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="contextModalTitle"
+        >
+          <div class="cohort-modal-header">
+            <div>
+              <p class="eyebrow">Student Context</p>
+              <h2 id="contextModalTitle">Immutable And Structural Factors</h2>
+            </div>
+          </div>
+          <div class="cohort-modal-body">
+            <div id="contextGrid" class="context-grid"></div>
+          </div>
+          <div class="cohort-modal-footer">
+            <button
+              id="contextModalDone"
+              class="cohort-modal-done"
+              type="button"
+            >
+              Done
+            </button>
+          </div>
+        </section>
+      </div>
     </main>
 
     <script src="./vendor/d3.v7.min.js"></script>

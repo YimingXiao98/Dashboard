@@ -3,6 +3,21 @@ const PASSING_THRESHOLD = 60;
 const ACTIONABLE_MUTABILITY = new Set(["high", "medium"]);
 const MAX_SCATTER_POINTS = 900;
 
+// Chart styling constants
+const CHART_COLORS = {
+  baseline: "#d97706",
+  scenario: "#0f766e",
+  actual: "#123247",
+  failZone: "rgba(185, 28, 28, 0.09)",
+  failThreshold: "#b91c1c",
+  parentalLow: "#b91c1c",
+  parentalMedium: "#d97706",
+  parentalHigh: "#0f766e",
+};
+
+const DENSITY_BANDWIDTH = 1.8;
+const SCALE_PADDING = 0.03;
+
 const state = {
   selectedStudentId: data.defaultStudentId,
   scenarioValues: {},
@@ -14,6 +29,9 @@ const state = {
 
 const featureLookup = Object.fromEntries(
   data.features.map((feature) => [feature.key, feature]),
+);
+const correlationLookup = Object.fromEntries(
+  (data.topCorrelations || []).map((entry) => [entry.key, entry.value]),
 );
 const studentLookup = Object.fromEntries(
   data.students.map((student) => [student.id, student]),
@@ -81,18 +99,24 @@ async function loadCohortRowsFromCsv() {
   try {
     const response = await fetch("../data/raw/StudentPerformanceFactors.csv");
     if (!response.ok) {
+      console.debug("CSV file not available, using bundled prototype data");
       return;
     }
     const csvText = await response.text();
     const parsedRows = parseCsvText(csvText);
     if (!parsedRows.length) {
+      console.warn("CSV file found but contains no valid data");
       return;
     }
 
     state.cohortRows = parsedRows;
+    console.debug(`Loaded ${parsedRows.length} student records from CSV`);
     renderAll(false);
-  } catch {
-    // Keep graceful fallback to bundled prototype data when CSV is unavailable.
+  } catch (error) {
+    console.debug(
+      "Error loading CSV, falling back to bundled prototype data:",
+      error,
+    );
   }
 }
 
@@ -136,6 +160,39 @@ function getChangedFeatureKeys(student) {
         isFeatureChanged(student, feature.key),
     )
     .map((feature) => feature.key);
+}
+
+function getFeatureCorrelation(featureKey) {
+  const value = correlationLookup[featureKey];
+  return Number.isFinite(value) ? value : null;
+}
+
+function getCorrelationClass(value) {
+  const absValue = Math.abs(value);
+  if (absValue >= 0.45) {
+    return "corr-strong";
+  }
+  if (absValue >= 0.2) {
+    return "corr-moderate";
+  }
+  if (absValue >= 0.1) {
+    return "corr-weak";
+  }
+  return "corr-low";
+}
+
+function getCorrelationLabel(value) {
+  const absValue = Math.abs(value);
+  if (absValue >= 0.45) {
+    return "Strong";
+  }
+  if (absValue >= 0.2) {
+    return "Moderate";
+  }
+  if (absValue >= 0.1) {
+    return "Weak";
+  }
+  return "Very low";
 }
 
 function encodeValue(featureKey, value) {
@@ -186,12 +243,12 @@ function summarizeSamples(samples) {
 
 function buildDensity(samples) {
   const points = [];
-  const bandwidth = 1.8;
-  const normalizer = samples.length * bandwidth * Math.sqrt(2 * Math.PI);
+  const normalizer =
+    samples.length * DENSITY_BANDWIDTH * Math.sqrt(2 * Math.PI);
   for (let score = 45; score <= 100; score += 0.5) {
     let density = 0;
     for (const sample of samples) {
-      const z = (score - sample) / bandwidth;
+      const z = (score - sample) / DENSITY_BANDWIDTH;
       density += Math.exp(-0.5 * z * z);
     }
     points.push({ x: score, y: density / normalizer });
@@ -422,7 +479,7 @@ function renderPredictionChart(
     .attr("y", margin.top)
     .attr("width", x(60) - x(45))
     .attr("height", plotHeight)
-    .attr("fill", "rgba(185, 28, 28, 0.09)");
+    .attr("fill", CHART_COLORS.failZone);
 
   svg
     .append("g")
@@ -484,9 +541,17 @@ function renderPredictionChart(
     .attr("d", line);
 
   [
-    { xValue: baselineSummary.mean, stroke: "#d97706", dash: "6 6" },
-    { xValue: scenarioSummary.mean, stroke: "#0f766e", dash: "6 6" },
-    { xValue: student.actualScore, stroke: "#123247", width: 2 },
+    {
+      xValue: baselineSummary.mean,
+      stroke: CHART_COLORS.baseline,
+      dash: "6 6",
+    },
+    {
+      xValue: scenarioSummary.mean,
+      stroke: CHART_COLORS.scenario,
+      dash: "6 6",
+    },
+    { xValue: student.actualScore, stroke: CHART_COLORS.actual, width: 2 },
   ].forEach((marker) => {
     const selection = svg
       .append("line")
@@ -524,25 +589,25 @@ function renderPredictionChart(
 
   const legendItems = [
     {
-      color: "#b91c1c",
+      color: CHART_COLORS.failThreshold,
       dash: "6 3",
       text: "Fail threshold (60)",
       strokeWidth: 1.5,
     },
     {
-      color: "#d97706",
+      color: CHART_COLORS.baseline,
       dash: "6 6",
       text: `Baseline ${formatNumber(baselineSummary.mean)}`,
       strokeWidth: 2,
     },
     {
-      color: "#0f766e",
+      color: CHART_COLORS.scenario,
       dash: "6 6",
       text: `Scenario ${formatNumber(scenarioSummary.mean)}`,
       strokeWidth: 2,
     },
     {
-      color: "#123247",
+      color: CHART_COLORS.actual,
       dash: null,
       text: `Actual ${student.actualScore}`,
       strokeWidth: 2,
@@ -710,6 +775,11 @@ function createControlsMarkup(student) {
           : feature.mutable === "medium"
             ? "Counseling or resource lever"
             : "Context lever";
+      const correlation = getFeatureCorrelation(feature.key);
+      const correlationMarkup =
+        correlation == null
+          ? '<span class="correlation-chip corr-low">N/A</span>'
+          : `<span class="correlation-chip ${getCorrelationClass(correlation)}">${correlation >= 0 ? "+" : ""}${formatNumber(correlation, 3)} ${getCorrelationLabel(correlation)}</span>`;
       const header = `
         <div class="control-top">
           <div>
@@ -732,6 +802,10 @@ function createControlsMarkup(student) {
               </button>
             </div>
             <div class="control-value">${formatFeatureValue(feature.key, currentValue)}</div>
+            <div class="control-correlation">
+              <span class="correlation-label">Correlation</span>
+              ${correlationMarkup}
+            </div>
           </div>
         </div>
       `;
@@ -800,7 +874,6 @@ function bindControlInputs(container, student) {
           renderModalControls(student);
         }
         renderScenarioOutputs(student);
-        renderScatterChart(student);
         renderCohortModal(student, { skipControls: true });
         return;
       }
@@ -958,7 +1031,6 @@ function bindModalFocusControlInput(student) {
       }
 
       renderScenarioOutputs(student);
-      renderScatterChart(student);
       renderCohortModal(student, { skipControls: true });
       return;
     }
@@ -1133,7 +1205,13 @@ function renderScatterChart(student, options = {}) {
   const feature = featureLookup[featureKey] || featureLookup.Attendance;
   const svgEl = document.getElementById(svgId);
   const tooltip = document.getElementById(tooltipId);
-  if (!svgEl || !tooltip) {
+
+  if (!svgEl) {
+    console.warn(`Scatter chart SVG element not found: ${svgId}`);
+    return;
+  }
+  if (!tooltip) {
+    console.warn(`Tooltip element not found: ${tooltipId}`);
     return;
   }
 
@@ -1170,7 +1248,7 @@ function renderScatterChart(student, options = {}) {
     const dataMin = d3.min(values) ?? 0;
     const domainMax = Math.max(1, featureMax, dataMax);
     const domainMin = Math.max(0, Math.min(featureMin, dataMin));
-    const pad = Math.max(1, domainMax * 0.03);
+    const pad = Math.max(1, domainMax * SCALE_PADDING);
     x.domain([domainMin, domainMax + pad]);
   } else {
     x.domain(feature.options || []);
@@ -1181,9 +1259,9 @@ function renderScatterChart(student, options = {}) {
     .domain([55, 101])
     .range([margin.top + plotHeight, margin.top]);
   const colors = {
-    Low: "#b91c1c",
-    Medium: "#d97706",
-    High: "#0f766e",
+    Low: CHART_COLORS.parentalLow,
+    Medium: CHART_COLORS.parentalMedium,
+    High: CHART_COLORS.parentalHigh,
   };
   const svg = d3.select(svgEl);
   svg.attr("viewBox", `0 0 ${width} ${height}`);
@@ -1416,6 +1494,47 @@ function setupCohortModal() {
   });
 }
 
+function openContextModal() {
+  const overlay = document.getElementById("contextModalOverlay");
+  if (!overlay) {
+    return;
+  }
+  overlay.classList.add("open");
+  overlay.setAttribute("aria-hidden", "false");
+}
+
+function closeContextModal() {
+  const overlay = document.getElementById("contextModalOverlay");
+  if (!overlay) {
+    return;
+  }
+  overlay.classList.remove("open");
+  overlay.setAttribute("aria-hidden", "true");
+}
+
+function setupContextModal() {
+  const trigger = document.getElementById("studentContextInfo");
+  const doneButton = document.getElementById("contextModalDone");
+  const overlay = document.getElementById("contextModalOverlay");
+
+  if (!trigger || !doneButton || !overlay) {
+    return;
+  }
+
+  trigger.addEventListener("click", openContextModal);
+  doneButton.addEventListener("click", closeContextModal);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      closeContextModal();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && overlay.classList.contains("open")) {
+      closeContextModal();
+    }
+  });
+}
+
 function renderCohortModal(student, options = {}) {
   if (!state.isCohortModalOpen) {
     return;
@@ -1512,26 +1631,31 @@ function renderCorrelationChart() {
     .text((item) => formatCorrelation(item.value));
 }
 
-function renderAll(rebuildLists = true) {
+function renderAll() {
   const student = getSelectedStudent();
 
-  renderHeroMetrics();
-  if (rebuildLists) {
-    renderStudentList();
-  } else {
-    renderStudentList();
+  if (!student) {
+    console.error("No student selected for rendering");
+    return;
   }
-  renderScenarioOutputs(student);
-  renderPresets(student);
-  renderControls(student);
-  renderContext(student);
-  renderScatterChart(student, { featureKey: "Attendance" });
-  renderCohortModal(student);
-  renderCorrelationChart();
+
+  try {
+    renderHeroMetrics();
+    renderStudentList();
+    renderScenarioOutputs(student);
+    renderPresets(student);
+    renderControls(student);
+    renderContext(student);
+    renderCohortModal(student);
+    renderCorrelationChart();
+  } catch (error) {
+    console.error("Error during rendering:", error);
+  }
 }
 
 function initialize() {
   setupCohortModal();
+  setupContextModal();
   window.addEventListener("resize", () => {
     renderAll(false);
   });

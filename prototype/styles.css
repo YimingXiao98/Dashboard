@@ -69,7 +69,7 @@ body {
   z-index: 1;
   max-width: 1500px;
   margin: 0 auto;
-  padding: 28px 24px 56px;
+  padding: 20px 20px 24px;
 }
 
 .panel {
@@ -183,12 +183,12 @@ h3 {
 .context-row,
 .insight-grid {
   display: grid;
-  gap: 22px;
-  margin-top: 22px;
+  gap: 14px;
+  margin-top: 14px;
 }
 
 .studio-layout {
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr);
   align-items: stretch;
 }
 
@@ -221,18 +221,25 @@ h3 {
 }
 
 .controls-band {
-  margin-top: 22px;
+  margin-top: 14px;
 }
 
 .insight-grid {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
 }
 
 .panel-head {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
+}
+
+.panel-head-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .panel-head-compact {
@@ -249,7 +256,7 @@ h3 {
 .controls-band,
 .context-row > .panel,
 .insight-grid > .panel {
-  padding: 24px;
+  padding: 16px;
 }
 
 .rail-panel {
@@ -261,7 +268,7 @@ h3 {
 .decision-scroll {
   display: grid;
   gap: 10px;
-  max-height: calc(100vh - 190px);
+  max-height: calc(100vh - 250px);
   overflow: auto;
   padding-right: 6px;
 }
@@ -349,12 +356,12 @@ h3 {
 .score-summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .panel-main {
-  padding: 26px 26px 22px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
 }
@@ -417,8 +424,8 @@ h3 {
 .scenario-feedback {
   display: grid;
   gap: 6px;
-  margin-bottom: 18px;
-  padding: 14px 16px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
   border-radius: 18px;
   border: 1px solid var(--line);
   background: rgba(18, 50, 71, 0.06);
@@ -576,7 +583,7 @@ h3 {
 }
 
 .controls-grid-band {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .context-grid {
@@ -594,7 +601,7 @@ h3 {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  gap: 4px;
 }
 
 .control-side-row {
@@ -632,8 +639,48 @@ h3 {
 
 .control-value {
   color: var(--navy);
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-weight: 700;
+}
+
+.control-correlation {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.correlation-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.correlation-chip {
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.corr-strong {
+  background: rgba(15, 118, 110, 0.16);
+  color: var(--teal);
+}
+
+.corr-moderate {
+  background: rgba(18, 50, 71, 0.12);
+  color: var(--navy);
+}
+
+.corr-weak {
+  background: rgba(217, 119, 6, 0.14);
+  color: var(--amber);
+}
+
+.corr-low {
+  background: rgba(90, 104, 114, 0.14);
+  color: var(--muted);
 }
 
 .control-card.changed {
@@ -694,6 +741,17 @@ h3 {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
+}
+
+.context-modal {
+  width: min(72vw, 900px);
+  height: auto;
+  max-height: min(72vh, 700px);
+}
+
+.context-modal .cohort-modal-body {
+  grid-template-rows: 1fr;
+  overflow: auto;
 }
 
 .cohort-modal-header {
@@ -949,6 +1007,13 @@ select {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .controls-grid-band,
+  .context-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 920px) {
   .controls-grid-band,
   .context-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
