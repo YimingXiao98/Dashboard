@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Counterfactual Student Dashboard Prototype</title>
+    <title>Student Intervention Command Center</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -12,14 +12,29 @@
     <main class="app-shell">
       <header class="hero panel reveal">
         <div class="hero-copy-block">
-          <p class="eyebrow">Data Visualization Prototype</p>
-          <h1>Counterfactual Student Intervention Studio</h1>
-          <!-- <p class="hero-copy">
-            A prototype checkpoint for the advising dashboard proposed in the
-            report and slides: choose an at-risk student, simulate an
-            intervention, and see the predicted score distribution shift in real
-            time.
-          </p> -->
+          <div class="hero-toolbar">
+            <p class="eyebrow">Data Visualization Prototype</p>
+            <button
+              id="themeToggle"
+              class="theme-toggle"
+              type="button"
+              aria-pressed="false"
+              aria-label="Switch theme"
+            >
+              Light mode
+            </button>
+          </div>
+          <h1>Student Intervention Command Center</h1>
+          <p class="hero-copy">
+            Pick a student, adjust the editable levers, and compare the
+            projected score distribution against the baseline. The interface is
+            designed as a compact decision dashboard for advising and triage.
+          </p>
+          <div class="chip-row">
+            <span class="chip">Live counterfactuals</span>
+            <span class="chip">Cohort comparisons</span>
+            <span class="chip">Actionable levers</span>
+          </div>
         </div>
         <div class="hero-metrics" id="heroMetrics"></div>
       </header>
@@ -84,7 +99,7 @@
         </section>
       </section>
 
-      <section class="panel controls-band reveal">
+      <section class="panel controls-band compact-controls reveal">
         <div class="panel-head">
           <p class="eyebrow">Intervention Controls</p>
           <h2>Editable Variables</h2>
@@ -109,7 +124,7 @@
         >
           <div class="cohort-modal-header">
             <div>
-              <p class="eyebrow">Cohert Anaylsis</p>
+              <p class="eyebrow">Cohort Analysis</p>
               <h2 id="cohortModalTitle">Attendance vs Exam Score</h2>
             </div>
           </div>
@@ -169,7 +184,7 @@
           <div class="cohort-modal-header">
             <div>
               <p class="eyebrow">Student Context</p>
-              <h2 id="contextModalTitle">Immutable And Structural Factors</h2>
+              <h2 id="contextModalTitle">Immutable and Structural Factors</h2>
             </div>
           </div>
           <div class="cohort-modal-body">

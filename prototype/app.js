@@ -7,7 +7,7 @@ const MAX_SCATTER_POINTS = 900;
 const CHART_COLORS = {
   baseline: "#d97706",
   scenario: "#0f766e",
-  actual: "#123247",
+  actual: "var(--navy)",
   failZone: "rgba(185, 28, 28, 0.09)",
   failThreshold: "#b91c1c",
   parentalLow: "#b91c1c",
@@ -17,6 +17,7 @@ const CHART_COLORS = {
 
 const DENSITY_BANDWIDTH = 1.8;
 const SCALE_PADDING = 0.03;
+const THEME_STORAGE_KEY = "prototype-theme";
 
 const state = {
   selectedStudentId: data.defaultStudentId,
@@ -25,6 +26,7 @@ const state = {
   isCohortModalOpen: false,
   selectedModalFeatureKey: null,
   cohortRows: null,
+  theme: "dark",
 };
 
 const featureLookup = Object.fromEntries(
@@ -55,6 +57,52 @@ function riskClass(riskBand) {
 
 function deepCopy(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function getPreferredTheme() {
+  try {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (storedTheme === "light" || storedTheme === "dark") {
+      return storedTheme;
+    }
+  } catch {
+    // Fall back to the system preference when storage is unavailable.
+  }
+
+  return window.matchMedia("(prefers-color-scheme: light)").matches
+    ? "light"
+    : "dark";
+}
+
+function applyTheme(theme) {
+  const nextTheme = theme === "light" ? "light" : "dark";
+  state.theme = nextTheme;
+  document.documentElement.dataset.theme = nextTheme;
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  } catch {
+    // Ignore storage failures; the in-memory theme still updates immediately.
+  }
+
+  const themeToggle = document.getElementById("themeToggle");
+  if (themeToggle) {
+    themeToggle.setAttribute("aria-pressed", nextTheme === "light");
+    themeToggle.textContent =
+      nextTheme === "light" ? "Dark mode" : "Light mode";
+  }
+}
+
+function toggleTheme() {
+  applyTheme(state.theme === "light" ? "dark" : "light");
+}
+
+function setupThemeToggle() {
+  const themeToggle = document.getElementById("themeToggle");
+  if (!themeToggle) {
+    return;
+  }
+
+  themeToggle.addEventListener("click", toggleTheme);
 }
 
 function parseCsvText(csvText) {
@@ -628,8 +676,8 @@ function renderPredictionChart(
     .attr("width", legendX - legendLineX1 + 18)
     .attr("height", legendItems.length * legendGap + 4)
     .attr("rx", 8)
-    .attr("fill", "rgba(255,251,245,0.82)")
-    .attr("stroke", "rgba(31,41,51,0.10)")
+    .attr("fill", "var(--surface-strong)")
+    .attr("stroke", "var(--line)")
     .attr("stroke-width", 1);
 
   legendItems.forEach((item, i) => {
@@ -784,10 +832,10 @@ function createControlsMarkup(student) {
         <div class="control-top">
           <div>
             <strong>${feature.label}</strong>
-            <p>${mutabilityLabel}</p>
           </div>
           <div class="control-side">
             <div class="control-side-row">
+              <span class="control-muted">${mutabilityLabel}</span>
               <span class="tag-pill control-state ${isChanged ? "delta-positive" : ""}">
                 ${isChanged ? "Edited" : "Baseline"}
               </span>
@@ -822,7 +870,10 @@ function createControlsMarkup(student) {
               value="${currentValue}"
               data-feature="${feature.key}"
             />
-            <p>Baseline: ${formatFeatureValue(feature.key, baselineValue)}</p>
+            <div class="control-footer">
+              <span>Baseline ${formatFeatureValue(feature.key, baselineValue)}</span>
+              <span>${feature.type === "numeric" ? "Slider" : "Select"}</span>
+            </div>
           </div>
         `;
       }
@@ -838,7 +889,10 @@ function createControlsMarkup(student) {
               )
               .join("")}
           </select>
-          <p>Baseline: ${baselineValue}</p>
+          <div class="control-footer">
+            <span>Baseline ${baselineValue}</span>
+            <span>Dropdown</span>
+          </div>
         </div>
       `;
     })
@@ -1640,6 +1694,7 @@ function renderAll() {
   }
 
   try {
+    applyTheme(state.theme || getPreferredTheme());
     renderHeroMetrics();
     renderStudentList();
     renderScenarioOutputs(student);
@@ -1654,6 +1709,8 @@ function renderAll() {
 }
 
 function initialize() {
+  applyTheme(getPreferredTheme());
+  setupThemeToggle();
   setupCohortModal();
   setupContextModal();
   window.addEventListener("resize", () => {
