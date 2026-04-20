@@ -166,7 +166,7 @@ button { font-family: inherit; cursor: pointer; }
 
 .grid {
   display: grid;
-  grid-template-columns: 270px minmax(0, 1fr) 570px;
+  grid-template-columns: 260px minmax(0, 1fr) minmax(440px, 560px);
   gap: 12px;
   flex: 1;
   min-height: 0;
@@ -407,6 +407,7 @@ html[data-theme="dark"] .rs-band.stable { color: oklch(78% 0.14 155); }
   padding: 12px 16px;
   align-items: center;
 }
+.headline-scoreboard { min-width: 0; }
 .headline-left { min-width: 0; }
 .student-title {
   font-family: var(--serif);
@@ -834,10 +835,40 @@ html[data-theme="dark"] #heroChart .marker-label.scen { fill: var(--accent); }
 }
 
 /* ================== RESPONSIVE ================== */
+
+/* Medium: stack the headline scoreboard below the title so the
+   center column stops being crushed by four auto-sized score cards. */
+@media (max-width: 1500px) {
+  .grid { grid-template-columns: 240px minmax(0, 1fr) minmax(400px, 480px); gap: 10px; }
+  .headline { grid-template-columns: 1fr; gap: 10px; align-items: stretch; }
+  .headline-scoreboard { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .score { min-width: 0; }
+  .rightrail .controls-grid { grid-template-columns: 1fr 1fr; }
+  .coef-list-compact { grid-template-columns: 1fr; }
+}
+
+/* Tighter: shrink the rails further before the full single-column stack. */
+@media (max-width: 1280px) {
+  .app { padding: 12px 16px; }
+  .grid { grid-template-columns: 220px minmax(0, 1fr) 380px; }
+  .hero-card-head { padding: 14px 16px 6px; }
+  .topbar { flex-wrap: wrap; row-gap: 10px; }
+}
+
+/* Narrow: single-column stack, allow page to scroll. */
 @media (max-width: 1100px) {
-  .grid { grid-template-columns: 1fr; }
+  .app { height: auto; overflow: visible; padding: 12px 14px; }
+  .grid { grid-template-columns: 1fr; overflow: visible; }
   .roster { position: static; max-height: 320px; }
   .rightrail { grid-template-rows: auto auto; }
   .headline { grid-template-columns: 1fr; }
-  .headline-scoreboard { grid-template-columns: repeat(4, 1fr); }
+  .headline-scoreboard { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .rightrail .controls-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+}
+
+/* Very narrow / mobile. */
+@media (max-width: 680px) {
+  .headline-scoreboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .topbar-right { flex-wrap: wrap; }
+  .hero-legend { flex-wrap: wrap; gap: 8px 14px; }
 }

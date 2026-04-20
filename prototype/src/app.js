@@ -481,16 +481,20 @@ function renderControls(student) {
       const corr = corrLookup[f.key];
       const corrStr = corr != null ? `${corr >= 0 ? "+" : ""}${fmt(corr, 2)}` : "—";
 
-      let control = "";
-      if (f.type === "numeric") {
-        control = `<input type="range" min="${f.min}" max="${f.max}" step="${f.step}" value="${curV}" data-key="${f.key}" />`;
-      } else {
-        control = `
+      const isNumeric = f.type === "numeric";
+      const control = isNumeric
+        ? `<input type="range" min="${f.min}" max="${f.max}" step="${f.step}" value="${curV}" data-key="${f.key}" />`
+        : `
           <div class="ctrl-seg" data-key="${f.key}">
             ${f.options.map(o => `<button type="button" class="${o === curV ? "active" : ""}" data-opt="${o}">${o}</button>`).join("")}
           </div>
         `;
-      }
+
+      // Numeric sliders need a readout above the track; segmented controls
+      // already show the active choice, so no extra value row.
+      const valueRow = isNumeric
+        ? `<div class="ctrl-value-row"><span class="ctrl-value">${formatVal(f.key, curV)}</span></div>`
+        : "";
 
       const baselineLine = changed
         ? `<span class="ctrl-baseline diff">${formatVal(f.key, baseV)}</span>`
@@ -502,9 +506,7 @@ function renderControls(student) {
             <span class="ctrl-label">${f.label}</span>
             <span class="ctrl-mut">${mutLabel}</span>
           </div>
-          <div class="ctrl-value-row">
-            <span class="ctrl-value">${formatVal(f.key, curV)}</span>
-          </div>
+          ${valueRow}
           ${control}
           <div class="ctrl-foot">
             ${baselineLine}
