@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Intervention Studio — Student Performance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22">
+            <rect x="3" y="13" width="3" height="8" />
+            <rect x="8" y="9"  width="3" height="12" />
+            <rect x="13" y="5" width="3" height="16" />
+            <rect x="18" y="11" width="3" height="10" opacity="0.4" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-name">Intervention&nbsp;Studio</div>
+          <div class="brand-sub">Counterfactual analytics for at-risk students</div>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="meta-chip">
+          <span class="meta-k">Dataset</span>
+          <span class="meta-v"><span id="metaRows">—</span> students</span>
+        </div>
+        <div class="meta-chip">
+          <span class="meta-k">Model&nbsp;R²</span>
+          <span class="meta-v" id="metaR2">—</span>
+        </div>
+        <div class="meta-chip">
+          <span class="meta-k">Bootstraps</span>
+          <span class="meta-v" id="metaBoot">—</span>
+        </div>
+        <button class="btn-ghost" id="themeToggle" type="button">Dark</button>
+      </div>
+    </header>
+
+    <!-- MAIN GRID -->
+    <main class="grid">
+
+      <!-- LEFT: STUDENT ROSTER -->
+      <aside class="roster">
+        <div class="roster-head">
+          <div>
+            <div class="section-kicker">01 · Roster</div>
+            <h2 class="section-title">Focus</h2>
+          </div>
+        </div>
+        <div class="roster-search">
+          <input id="rosterSearch" placeholder="Filter…" />
+        </div>
+        <div class="roster-legend">
+          <span><i class="dot dot-crit"></i>Critical</span>
+          <span><i class="dot dot-watch"></i>Watch</span>
+          <span><i class="dot dot-stable"></i>Stable</span>
+        </div>
+        <div class="roster-list" id="rosterList"></div>
+      </aside>
+
+      <!-- CENTER: scoreboard + distribution -->
+      <section class="stage">
+
+        <div class="headline">
+          <div class="headline-left">
+            <div class="section-kicker">02 · Current focus</div>
+            <h1 class="student-title" id="studentTitle">—</h1>
+            <div class="student-subline" id="studentSubline">—</div>
+          </div>
+          <div class="headline-scoreboard">
+            <div class="score">
+              <div class="score-k">Actual</div>
+              <div class="score-v" id="scoreActual">—</div>
+            </div>
+            <div class="score">
+              <div class="score-k">Baseline µ</div>
+              <div class="score-v" id="scoreBaseline">—</div>
+            </div>
+            <div class="score pivot">
+              <div class="score-k">Scenario µ</div>
+              <div class="score-v" id="scoreScenario">—</div>
+              <div class="score-delta" id="scoreDelta">—</div>
+            </div>
+            <div class="score">
+              <div class="score-k">P(fail&nbsp;&lt;60)</div>
+              <div class="score-v" id="scoreFail">—</div>
+              <div class="score-delta" id="failDelta">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-card">
+          <div class="hero-card-head">
+            <div>
+              <div class="section-kicker">Predicted exam score</div>
+              <div class="hero-title"><em>How does this scenario shift the distribution?</em></div>
+            </div>
+            <div class="hero-legend">
+              <span><i class="swatch swatch-base"></i>Baseline</span>
+              <span><i class="swatch swatch-scen"></i>Scenario</span>
+              <span><i class="swatch swatch-actual"></i>Actual</span>
+            </div>
+          </div>
+          <div class="hero-chart-wrap">
+            <svg id="heroChart" viewBox="0 0 960 380" preserveAspectRatio="xMidYMid meet" aria-label="Score distribution"></svg>
+          </div>
+          <div class="hero-card-foot">
+            <div id="diffRibbon" class="diff-ribbon"></div>
+          </div>
+          <div class="signals-foot">
+            <div class="section-kicker">Model signals</div>
+            <div class="coef-list coef-list-compact" id="coefList"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RIGHT: suggestions on top, controls below -->
+      <aside class="rightrail">
+        <div class="impact-card">
+          <div class="card-head">
+            <div>
+              <div class="section-kicker">03 · Suggested next move</div>
+              <h3 class="card-title">Best levers</h3>
+            </div>
+            <button class="btn-link" id="resetScenario">Reset</button>
+          </div>
+          <div class="impact-list" id="impactList"></div>
+        </div>
+
+        <div class="controls-card">
+          <div class="card-head controls-head">
+            <div>
+              <div class="section-kicker">04 · Fine-tune variables</div>
+              <h3 class="card-title">Intervention levers</h3>
+            </div>
+          </div>
+          <div class="preset-bar" id="presetBar"></div>
+          <div class="controls-grid" id="controlsGrid"></div>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="foot">
+      <span>Counterfactual Visual Analytics · CSC 679 Prototype</span>
+      <span>Dataset: Student Performance Factors · 6,607 records</span>
+    </footer>
+  </div>
+
+  <script src="src/vendor/d3.v7.min.js"></script>
+  <script src="src/data/prototype-data.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
